@@ -91,7 +91,12 @@ def submit_change(p4, change):
         ]
         """
         log.debug("Return of run_submit: {}".format(submit))
-        return [i for i in [s for s in submit if isinstance(s,dict)] if i.get('rev') or i.get('submittedChange') or i.get('change')]
+        change = [
+            [i for i in [s for s in submit if isinstance(s,dict)] if i.get('change')][0],
+            [i for i in [s for s in submit if isinstance(s,dict)] if i.get('rev')][0],
+            [i for i in [s for s in submit if isinstance(s,dict)] if i.get('submittedChange')][0]
+        ]
+        return change
     except P4Exception as e:
         raise TankError("Perforce: %s" % (p4.errors[0] if p4.errors else e))
 
