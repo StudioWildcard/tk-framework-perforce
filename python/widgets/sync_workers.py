@@ -95,6 +95,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self._icon = None
         self._detail = None
 
+        self.child = False
+
         self.fw = framework
         self.asset_item = None
 
@@ -127,7 +129,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         
     @property
     def root_path(self):
-        rp = self.asset_item.get('root_path')
+        p4_path_operator = "*"
+        if self.child is True:
+            p4_path_operator = "..."
+            self.fw.logger.warning("processed root path as a child: %s" %self.asset_item.get('root_path'))
+
+        rp = os.path.join(self.asset_item.get('root_path'),  p4_path_operator )
         if self.entity.get('type') in ["PublishedFile"]:
             rp = "B:/" + self.entity.get('path_cache')
         return rp
@@ -204,7 +211,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         try:
             self.template_resolver = TemplateResolver(app=self.app,
-                                                entity=self.entity )
+                                                entity=self.entity,
+                                        )
 
             self.asset_item = self.template_resolver.entity_info
             progress_status_string = ""
