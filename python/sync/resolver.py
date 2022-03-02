@@ -82,8 +82,8 @@ class TemplateResolver:
         else:
             templated_path = self.root_template.apply_fields(self.template_fields,
                                                             platform= sys.platform)
-            return os.path.join(templated_path, "...")
-
+            #return os.path.join(templated_path, "...")
+            return templated_path
     @property
     def entity_info(self):
         try:
