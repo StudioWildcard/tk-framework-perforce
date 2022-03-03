@@ -33,7 +33,7 @@ class SyncForm(QtGui.QWidget):
         
     progress = 0
     
-    def __init__(self, parent_sgtk_app, entities_to_sync, specific_files,  parent=None):
+    def __init__(self, parent_sgtk_app, entities_to_sync, specific_files, child_asset_ids=None , parent=None):
         """
         Construction of sync UI
         """
@@ -44,6 +44,7 @@ class SyncForm(QtGui.QWidget):
         self.app = parent_sgtk_app
         self.entities_to_sync = entities_to_sync
         self.specific_files= specific_files
+        self.child_asset_ids = child_asset_ids
         self.scan()
 
     def scan(self):
@@ -625,6 +626,10 @@ class SyncForm(QtGui.QWidget):
             asset_info_gather_worker.item_found_to_sync.connect(self.make_sync_tree_item)
             asset_info_gather_worker.status_update.connect(self.set_progress_message)
             asset_info_gather_worker.includes.connect(self.update_available_filters)
+
+            if self.child_asset_ids:
+                if entity_to_sync.get('id') in self.child_asset_ids:
+                    asset_info_gather_worker.child = True
 
             self.threadpool.start(asset_info_gather_worker)
 
