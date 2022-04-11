@@ -12,13 +12,10 @@
 Common Perforce sync utility methods
 """
 
-
 import os
 import socket
 import re
 import threading
-import traceback
-
 
 import sgtk
 from sgtk import TankError
@@ -114,8 +111,6 @@ def sync_with_dialog(app, entities_to_sync, specific_files=False,  child_asset_i
 
     :returns Qt UI:    A new Perforce sync dialog
     """
+
     fw = sgtk.platform.current_bundle()
-    try:
-        return SyncHandler(fw).sync_with_dlg(app, entities_to_sync, specific_files=specific_files, child_asset_ids=child_asset_ids)
-    except Exception  as e:
-        fw.log_error(traceback.format_exc())
+    return SyncHandler(fw).sync_with_dlg(app, entities_to_sync, specific_files=specific_files, child_asset_ids=child_asset_ids)
