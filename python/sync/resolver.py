@@ -96,5 +96,4 @@ class TemplateResolver:
             info = {
                 "error" : str(e)
             }
-            self.app.log_error(traceback.format_exc())
         return info
