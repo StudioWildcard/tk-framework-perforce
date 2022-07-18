@@ -48,6 +48,46 @@ class SyncHandler(object):
         self._p4 = None
         self.p4_server = self._get_p4_server()
 
+    def sync_with_mvc_dlg(self, app):
+            """
+            Show the sync window for user file syncing
+
+            :returns: None
+            """
+
+
+            self.app = app
+
+
+            try:
+                # ensure this always runs on the main thread:
+                return self._fw.engine.execute_in_main_thread(self._sync_with_mvc_dlg)
+            finally:
+                pass
+        
+    def _sync_with_mvc_dlg(self):
+        """
+        Actual implementation of sync_with_dlg.
+
+        :returns: None
+        """
+        server = self.p4_server
+        sg_user = sgtk.util.get_current_user(self._fw.sgtk)
+        user = self._fw.execute_hook("hook_get_perforce_user", sg_user=sg_user)
+
+        try:
+            from ..widgets import SyncFormMVC
+
+            result, _ = self._fw.engine.show_modal("Perforce Sync MVC", self._fw, SyncFormMVC, 
+                                                   self.app)
+
+            if result == QtGui.QDialog.Accepted:
+                pass
+
+        except Exception as e:
+            self._fw.log_error(e)
+
+        return None
 
     def sync_with_dlg(self, app, entities_to_sync,  specific_files=False):
         """
@@ -103,7 +143,7 @@ class SyncHandler(object):
         return str(sg_project.get(server_field))
 
 
-def sync_with_dialog(app, entities_to_sync, specific_files=False):
+def sync_with_dialog(app, entities_to_sync=None, specific_files=False, mvc=None):
     """
     Show the Perforce sync dialog
 
@@ -111,6 +151,10 @@ def sync_with_dialog(app, entities_to_sync, specific_files=False):
     """
     fw = sgtk.platform.current_bundle()
     try:
-        return SyncHandler(fw).sync_with_dlg(app, entities_to_sync, specific_files=specific_files)
+        if mvc:
+            widget = SyncHandler(fw).sync_with_mvc_dlg(app)
+        else:
+            widget = SyncHandler(fw).sync_with_dlg(app, entities_to_sync, specific_files=specific_files)
+        return widget
     except Exception  as e:
         fw.log_error(traceback.format_exc())
