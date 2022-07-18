@@ -26,6 +26,15 @@ from .utils import PrefFile, open_browser
 # file base for accessing Qt resources outside of resource scope
 basepath = os.path.dirname(os.path.abspath(__file__))
 
+class SyncFormMVC(QtGui.QWidget):
+
+    _fw = None
+    _p4 = None
+        
+    def __init__(self, parent_sgtk_app, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        pass
+
 
 class SyncForm(QtGui.QWidget):
 
