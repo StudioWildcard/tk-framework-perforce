@@ -11,6 +11,7 @@ class TreeItem(object):
         self.itemData = data
         self.childItems = []
 
+
     def appendChild(self, item):
         self.childItems.append(item)
 
@@ -44,7 +45,10 @@ class TreeModel(QtCore.QAbstractItemModel):
         super(TreeModel, self).__init__(parent)
 
         #self.rootItem will specify your headlines
-        self.rootItem = TreeItem(data[0])
+        fields = ["Name", "Child"]
+
+        self.rootItem = TreeItem(fields)
+        #self.rootItem = TreeItem(data[0])
         
         # TODO: make this work with lists of lists of strings
         self.setupModelData(data, self.rootItem)
@@ -162,7 +166,25 @@ class TreeModel(QtCore.QAbstractItemModel):
                 #         indentations.pop()
 
                 # Append a new item to the current parent's list of children.
-                parents[-1].appendChild(TreeItem(columnData, parents[-1]))
+
+
+                # # approach for a list of list of strings...
+                # item = TreeItem(columnData, parents[-1])
+                # parents[-1].appendChild(item)
+
+                # # define rule that we extract/apply children
+                # if columnData[0] == "1":
+                #     child_item = TreeItem(['this', 'is a', 'child'], item)
+                #     item.appendChild(child_item)
+
+                # # approach for a list of list of strings...
+                item = TreeItem(columnData, parents[-1])
+                parents[-1].appendChild(item)
+
+                # define rule that we extract/apply children
+                if columnData[0] == "1":
+                    child_item = TreeItem(['this', 'is a', 'child'], item)
+                    item.appendChild(child_item)
 
             number += 1
 
@@ -179,6 +201,7 @@ class test_class(QWidget):
 
         self.tree_view = QTreeView()
         self.tree_view.setModel(self.model)
+        self.tree_view.expandAll()
 
         self.master_layout.addWidget(self.tree_view)
 
@@ -214,6 +237,17 @@ class run_application(object):
         self.data = [
             ["1", "2", "3"],
             ["1", "2", "3"]
+        ]
+        self.data = [
+            {
+                "name" : "Ankylo_armor.psd", 
+                "parent" : "Ankylo"
+            },
+            {
+                "name" : "Human_armor.psd", 
+                "parent" : "Human", 
+            }
+
         ]
         self.run()
         
