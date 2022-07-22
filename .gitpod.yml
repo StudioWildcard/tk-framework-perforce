@@ -5,7 +5,7 @@ additionalRepositories:
     checkoutLocation: template_source
   - url: https://gitlab.com/nexodus/systems/infrastructure/role_nuke
     checkoutLocation: testing_source
-  - url: https://https://github.com/shotgunsoftware/tk-core
+  - url: https://github.com/shotgunsoftware/tk-core
     checkoutLocation: tk-core
   - url: https://gitlab.com/nexodus/consulting/swc/tk-config-swc
     checkoutLocation: tk-config-swc
