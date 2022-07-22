@@ -1,0 +1,25 @@
+# using example repo as template for quick retrofitting
+# this feature in gitpod copies other repos to /workspace/<checkoutLocation>
+additionalRepositories:
+  - url: https://gitlab.com/nexodus/systems/infrastructure/grafana-cloud-agent
+    checkoutLocation: template_source
+  - url: https://gitlab.com/nexodus/systems/infrastructure/role_nuke
+    checkoutLocation: testing_source
+  - url: https://https://github.com/shotgunsoftware/tk-core
+    checkoutLocation: tk-core
+  - url: https://gitlab.com/nexodus/consulting/swc/tk-config-swc
+    checkoutLocation: tk-config-swc
+
+tasks:
+  - before: cd ../tk-config-nx
+    init: git checkout beta
+    command: git status
+
+  # install pre-commit
+  - before: pip install pre-commit
+    init: pre-commit install
+    command: pre-commit
+
+vscode:
+  extensions:
+    - iliazeus.vscode-ansi
