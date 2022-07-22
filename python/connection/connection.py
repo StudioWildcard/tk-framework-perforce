@@ -24,11 +24,16 @@ from sgtk.platform.qt import QtGui
 from P4 import P4, P4Exception
 
 from .user_settings import UserSettings
+from ..util.progress import ProgressHandler
 
 
 class SgtkP4Error(TankError):
     """
     Specialisation of TankError raised after catching and processing a P4Exception
+    """
+class SgtkP4TCPConnectionError(TankError):
+    """
+    Specialisation of TankError raised after catching and processing a P4Exception that deals with no TCP connections
     """
 
 # global connection rlock to ensure that attempting to connect to Perforce happens exclusively.  This
@@ -50,6 +55,7 @@ class ConnectionHandler(object):
         """
         self._fw = fw
         self._p4 = None
+        self.p4_server = self._get_p4_server()
 
     @property
     def connection(self):
@@ -66,6 +72,7 @@ class ConnectionHandler(object):
         """
         if self._p4 and self._p4.connected():
             self._p4.disconnect()
+            self._fw.log_debug("Disconnected from perforce server.")
         self._p4 = None
 
     def connect_to_server(self):
@@ -73,7 +80,8 @@ class ConnectionHandler(object):
         Open a connection to the specified server.
         Returns a new P4 connection object if successful
         """
-        server = self._fw.get_setting("server")
+
+        server = self.p4_server
         host = self._fw.get_setting("host")
 
         # create new P4 instance
@@ -91,20 +99,26 @@ class ConnectionHandler(object):
         # attempt to connect to the server:
         try:
             self._fw.log_debug("Attempting to connect to %s" % server)
+            # connect to the p4 server
             p4.connect()
-        except P4Exception, e:
+            if p4.connected():
+                self._fw.log_debug("Connected!")
+        except Exception as e:
+            # Oh no, we failed to connect!
+            self._fw.log_debug("Failed to connect!")
             msg = None
             if p4.errors:
                 msg = p4.errors[0]
             else:
                 # TCP connect failure rather unhelpfully just raises an exception
-                # and doesn't add the error to p4.errors!
+                # and doesn't add the error to p4.errors! So lets parse the exception
+                # to get some useful information.
                 msg = str(e)
                 mo = re.match("\[P4\..*\(\)\] ", msg)
                 if mo:
                     msg = msg[mo.end():]
 
-            raise SgtkP4Error(msg)
+            raise SgtkP4TCPConnectionError(msg)
 
         self._p4 = p4
         return self._p4
@@ -140,7 +154,7 @@ class ConnectionHandler(object):
             # Wouldn't it be nice if there was a simple query command instead of having to parse the
             # returned message!
             p4_res = self._p4.run_trust()
-        except P4Exception, e:
+        except P4Exception as e:
             # if for some reason the client has an ssl fingerprint but it doesn't match the servers then we get
             # an exception, something like this:
             #
@@ -215,7 +229,7 @@ class ConnectionHandler(object):
                 # boo!
                 raise TankError("Failed to establish trust with server!")
 
-        except P4Exception, e:
+        except P4Exception as e:
             raise SgtkP4Error(self._p4.errors[0] if self._p4.errors else str(e))
 
         # all good!
@@ -276,7 +290,7 @@ class ConnectionHandler(object):
         all_workspaces = []
         try:
             all_workspaces = self._p4.run_clients("-u", user)
-        except P4Exception, e:
+        except P4Exception as e:
             raise SgtkP4Error(self._p4.errors[0] if self._p4.errors else str(e))
 
         host = socket.gethostname()
@@ -318,14 +332,13 @@ class ConnectionHandler(object):
         :returns:           A new connected P4 instance if successful or None if the user cancels.
         :raises:            TankError if connecting failed for some reason other than the user cancelling.
         """
-        server = self._fw.get_setting("server")
+        server = self.p4_server
         if not user:
             sg_user = sgtk.util.get_current_user(self._fw.sgtk)
             user = self._fw.execute_hook("hook_get_perforce_user", sg_user=sg_user)
             if not user:
                 raise TankError("Perforce: Failed to find Perforce user for Shotgun user '%s'"
                                 % (sg_user if sg_user else "<unknown>"))
-        workspace = workspace if workspace is not None else self._get_current_workspace()
 
         # lock around attempting to connect so that only one thread will attempt
         # to connect at a time.
@@ -335,8 +348,8 @@ class ConnectionHandler(object):
             # first, attempt to connect to the server:
             try:
                 self.connect_to_server()
-            except SgtkP4Error, e:
-                raise TankError("Perforce: Failed to connect to perforce server '%s' - %s" % (server, e))
+            except SgtkP4TCPConnectionError as e:
+                raise 
 
             # then ensure that the connection is trusted:
             try:
@@ -348,7 +361,7 @@ class ConnectionHandler(object):
                 elif not is_trusted:
                     # user decided not to trust!:
                     return None
-            except SgtkP4Error, e:
+            except SgtkP4Error as e:
                 raise TankError("Perforce: Connection to server '%s' is not trusted: %s" % (server, e))
 
             # log-in user:
@@ -369,15 +382,16 @@ class ConnectionHandler(object):
                     elif not logged_in:
                         # user cancelled log-in!
                         return None
-            except SgtkP4Error, e:
+            except SgtkP4Error as e:
                 raise TankError("Perforce: Failed to login user '%s' - %s" % (user, e))
 
             # finally, validate the workspace:
+            workspace = workspace if workspace is not None else self._sgtk_workspace()
             if workspace:
                 try:
                     self._validate_workspace(workspace, user)
                     self._p4.client = str(workspace)
-                except SgtkP4Error, e:
+                except SgtkP4Error as e:
                     raise TankError("Perforce: Workspace '%s' is not valid! - %s" % (workspace, e))
 
             try:
@@ -388,10 +402,12 @@ class ConnectionHandler(object):
 
             return self._p4
 
-        except TankError, e:
+        except TankError as e:
             # failed to connect to server - switch to UI mode
             # if available instead:
-            if allow_ui and self._fw.engine.execute_in_main_thread(self.__has_ui):
+            if isinstance(e, SgtkP4TCPConnectionError):
+                raise
+            elif allow_ui and self._fw.engine.execute_in_main_thread(self.__has_ui):
                 # just show the connection UI instead:
                 return self.connect_with_dlg()
             else:
@@ -427,7 +443,7 @@ class ConnectionHandler(object):
 
         :returns: A connected, logged-in p4 instance if successful.
         """
-        server = self._fw.get_setting("server")
+        server = self.p4_server
         sg_user = sgtk.util.get_current_user(self._fw.sgtk)
         user = self._fw.execute_hook("hook_get_perforce_user", sg_user=sg_user)
 
@@ -480,7 +496,7 @@ class ConnectionHandler(object):
             try:
                 self._fw.log_debug("Attempting to log-in user %s to server %s" % (self._p4.user, self._p4.port))
                 self._p4.run_login()
-            except P4Exception, e:
+            except P4Exception as e:
                 # keep track of error message:
                 error_msg = self._p4.errors[0] if self._p4.errors else str(e)
                 self._fw.log_debug(error_msg)
@@ -561,7 +577,7 @@ class ConnectionHandler(object):
         try:
             self._validate_workspace(widget.workspace, widget.user)
             self._p4.client = str(widget.workspace)
-        except TankError, e:
+        except TankError as e:
             # likely that the user isn't valid!
             QtGui.QMessageBox.information(widget, "Invalid Perforce Workspace!",
                                           ("Workspace '%s' is not valid for user '%s' on the Perforce server"
@@ -584,12 +600,12 @@ class ConnectionHandler(object):
             QtGui.QMessageBox.warning(widget, "Unknown Perforce User!", msg)
             return False
 
-        server = self._fw.get_setting("server")
+        server = self.p4_server
         try:
             # ensure we are connected:
             if not self._p4 or not self._p4.connected():
                 self.connect_to_server()
-        except TankError, e:
+        except TankError as e:
             QtGui.QMessageBox.information(widget, "Perforce Connection Failed",
                                           "Failed to connect to Perforce server:\n\n    '%s'\n\n%s" % (server, e))
             return False
@@ -599,7 +615,7 @@ class ConnectionHandler(object):
             is_trusted, _ = self._ensure_connection_is_trusted(True, widget)
             if not is_trusted:
                 return False
-        except TankError, e:
+        except TankError as e:
             QtGui.QMessageBox.information(widget, "Perforce Connection Not Trusted",
                                           "The connection to the Perforce server:\n\n    '%s'\n\is not trusted: %s" % (server, e))
             return False
@@ -607,7 +623,7 @@ class ConnectionHandler(object):
         try:
             # make sure the current user is logged in:
             self._login_user(widget.user, widget)
-        except TankError, e:
+        except TankError as e:
             # likely that the user isn't valid!
             QtGui.QMessageBox.information(widget, "Perforce Log-in Failed",
                                           ("Failed to log-in user '%s' to the Perforce server:\n\n    '%s'\n\n%s"
@@ -615,6 +631,41 @@ class ConnectionHandler(object):
             return False
 
         return True
+
+    def _sgtk_workspace(self):
+        """
+        Fetches the Sgtk-created workspace for perforce or creates one if it doesnt
+        exist.
+
+        :returns: The name of the sgtk workspace.
+        """
+
+        p4 = self.connection
+        project_name = self._fw.sgtk.pipeline_configuration._project_name
+        root_path = os.path.abspath(os.path.join(self._fw.sgtk.roots.get('primary'), os.pardir))  # one directory above project root
+        template_name = "sgtk_{}_master".format(project_name)  # sgtk_proj_master
+        hostname = socket.gethostname()
+        workspace_name = "sgtk_{}_{}_{}".format(project_name, p4.user, hostname)  # sgtk_proj_username_hostname
+        workspaces = [c["client"] for c in p4.run("clients")]
+
+        if workspace_name in workspaces:
+            self._fw.log_debug("Existing workspace found: {}".format(workspace_name))
+            return workspace_name
+        else:
+            if not template_name in workspaces:
+                self._fw.log_error("Template workspace '{}' not found! Contact your admin.".format(template_name))
+                return None
+
+        self._fw.log_debug("Creating new workspace: {}".format(workspace_name))
+        # create a new client workspace spec from the project template
+        client = p4.fetch_client("-t", template_name, workspace_name)
+        # set the root to be one-level above the sgtk project root and give a desc
+        client._root = root_path
+        client._description = "Sgtk-generated workspace based on {}".format(template_name)
+        # save the client workspace to p4 so we can access it
+        p4.save_client(client)
+
+        return workspace_name
 
     def _get_current_workspace(self):
         """
@@ -659,7 +710,7 @@ class ConnectionHandler(object):
         """
         try:
             workspaces = self._p4.run_clients("-e", str(workspace))
-        except P4Exception, e:
+        except P4Exception as e:
             raise SgtkP4Error(self._p4.errors[0] if self._p4.errors else str(e))
 
         if not workspaces:
@@ -679,7 +730,7 @@ class ConnectionHandler(object):
             # This will raise a P4Exception if the user isn't valid:
             # (TODO) - check this wasn't just a warning!
             users = self._p4.run_users(self._p4.user)
-        except P4Exception, e:
+        except P4Exception as e:
             raise SgtkP4Error(self._p4.errors[0] if self._p4.errors else str(e))
 
         if not users:
@@ -717,8 +768,19 @@ class ConnectionHandler(object):
         # user isn't logged in!
         return True
 
+    def _get_p4_server(self):
+        server_field = self._fw.get_setting("server_field")
+        sg_project = self._fw.shotgun.find_one('Project', [['id', 'is', self._fw.context.project['id']]], [server_field])
+        server = sg_project.get(server_field)
 
-def connect(allow_ui=True, user=None, password=None, workspace=None):
+        if not server:
+            self._fw.log_error("No server was configured for this project! Enter the p4 server in the project field '{}'".format(server_field))
+            return None
+
+        return str(sg_project.get(server_field))
+
+
+def connect(allow_ui=True, user=None, password=None, workspace=None, progress=None):
     """
     Connect to Perforce
 
@@ -731,7 +793,13 @@ def connect(allow_ui=True, user=None, password=None, workspace=None):
     :returns P4:        A new Perforce connection instance if successful
     """
     fw = sgtk.platform.current_bundle()
-    return ConnectionHandler(fw).connect(allow_ui, user, password, workspace)
+    try:
+        connection = ConnectionHandler(fw).connect(allow_ui, user, password, workspace)
+        if progress:
+            connection.progress = ProgressHandler()
+        return connection
+    except SgtkP4TCPConnectionError:
+        raise
 
 
 def connect_with_dialog():
