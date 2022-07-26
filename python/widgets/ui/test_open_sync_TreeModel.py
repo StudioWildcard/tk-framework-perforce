@@ -44,13 +44,12 @@ class TreeModel(QtCore.QAbstractItemModel):
     def __init__(self, data, parent=None):
         super(TreeModel, self).__init__(parent)
 
-        #self.rootItem will specify your headlines
-        fields = ["Name", "Child"]
+        fields = self.get_headlines(data)
 
         self.rootItem = TreeItem(fields)
         #self.rootItem = TreeItem(data[0])
         
-        # TODO: make this work with lists of lists of strings
+        
         self.setupModelData(data, self.rootItem)
 
     def columnCount(self, parent):
@@ -73,6 +72,59 @@ class TreeModel(QtCore.QAbstractItemModel):
     # def handle_case_we_wish_to_hide(item, handler):
     #     case = handler.does_make_the_case(item)
 
+    def get_headlines(data: dict) -> list:
+            """ Will sort through first entry of the list of dictionaries
+            and retrieve all the keys. These will be used as headers
+            in the tree view
+            
+            Args:
+                data (dict): the dictionary we want to parse to populate the tree view
+                
+            Returns:
+                list: strings to use as headers
+            """
+            
+            headlines = list(data[0].keys())
+            headlines.remove('parent')
+            
+            return headlines
+
+    #this is the logic that should be in setupModelData most likely
+    def some_method(data: dict):
+        coloumn = 0
+        row = 0
+        parents = []
+        for row, d in enumerate(data):
+            
+            
+            if d.get('parent') == None:
+                #assign row number here
+                
+                row = row
+                parent = QtCore.QModelIndex()
+                self.index()
+                parents.append(d['name'])
+                
+                #print('this is coloumn', column)
+                #print('this is row', row)
+        
+        
+            
+        
+        while parents:
+            print('entering while loop')
+            children = []
+            
+            for parent in parents:
+                print(parent, 'this is parent')
+                for d in data:
+                    if d['parent'] == parent:
+                        
+                        print(d['name'], 'this is child and my parent is', d['parent'])
+                                
+            
+            column += 1
+            parents = []
 
     def flags(self, index):
         if not index.isValid():
@@ -101,8 +153,6 @@ class TreeModel(QtCore.QAbstractItemModel):
         else:
             return QtCore.QModelIndex()
 
-   
-
     def parent(self, index):
         if not index.isValid():
             return QtCore.QModelIndex()
@@ -125,6 +175,7 @@ class TreeModel(QtCore.QAbstractItemModel):
             parentItem = parent.internalPointer()
 
         return parentItem.childCount()
+    
     
         #lines is our list
     def setupModelData(self, lines, parent):
@@ -234,21 +285,43 @@ class run_application(object):
         # self.data = [
         #     {"children" : ["something", "lkjsdflkjsdf"], "2_version_field_3": }
         # ]
-        self.data = [
-            ["1", "2", "3"],
-            ["1", "2", "3"]
-        ]
-        self.data = [
-            {
-                "name" : "Ankylo_armor.psd", 
-                "parent" : "Ankylo"
-            },
-            {
-                "name" : "Human_armor.psd", 
-                "parent" : "Human", 
-            }
 
-        ]
+        self.data = [
+                        {
+                            'name': 'asset1',
+                            'status' : '3/7 synced',
+                            'description' : 'asset of a kind',
+                            'detail': 'path to file on disk',
+                            'parent' : None
+                            
+                            
+
+                        },
+                        {
+                            'name': 'asset2',
+                            'status' : 'all files synced',
+                            'description': 'another asset of a kind',
+                            'detail' : 'path to file on disk',
+                            'parent': None
+                        },
+                        {
+                            'name': 'asset3',
+                            'status' : '5/5 synced',
+                            'detail' : 'path to file on disk',
+                            'description' : 'psd file of asset1',
+                            'parent': 'asset1'
+                        },
+                        {
+                            'name': 'asset4',
+                            'status' : '5/5 synced',
+                            'detail' : 'path to file on disk',
+                            'description': 'maya file of asset 2',
+                            'parent': ' asset2'
+                            
+                        }
+                    ]
+  
+
         self.run()
         
     def run(self):
@@ -257,3 +330,4 @@ class run_application(object):
         sys.exit()
 
 run_application().run()
+
