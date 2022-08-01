@@ -283,6 +283,25 @@ class TreeModel(QtCore.QAbstractItemModel):
                 asset_item = TreeItemSchema(data=list_item, parent=self.rootItem, schema=asset_item_schema, primary=True)
                 sync_item = TreeItemSchema(data=list_item, parent=asset_item, schema=sync_item_schema)  
 
+class SortFilterModel(QtCore.QSortFilterProxyModel):
+    """
+    A proxy model that excludes files from the view
+    that end with the given extension
+    """
+    def __init__(self, excludes, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._excludes = excludes[:]
+
+    def filterAcceptsRow(self, srcRow, srcParent):
+        idx = self.sourceModel().index(srcRow, 0, srcParent)
+        name = idx.data()
+        print("Filtered: {}".format(name))
+        for i in self._excludes:
+            if i in name:
+                return False
+        
+        return True
+
 
 class test_class(QWidget):
     
@@ -294,18 +313,22 @@ class test_class(QWidget):
         self.setLayout(self.master_layout)
 
         self.model = TreeModel(self.data)
+        self.proxy_model = SortFilterModel(excludes=['TRex'], parent=self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+
 
         self.tree_view = QTreeView()
-        self.tree_view.setModel(self.model)
+        self.tree_view.setModel(self.proxy_model)
         self.tree_view.setItemDelegateForColumn(1, MultiDelegate(self.tree_view))
         self.tree_view.setItemDelegateForColumn(2, DoubleSpinBoxDelegate(self.tree_view))
         self.tree_view.expandAll()
 
         self.list_view = QListView()
-        self.list_view.setModel(self.model)
+        self.list_view.setModel(self.proxy_model)
 
         self.table_view = QTableView()
-        self.table_view.setModel(self.model)
+        self.table_view.setModel(self.proxy_model)
 
 
         self.master_layout.addWidget(self.tree_view)
@@ -353,6 +376,12 @@ class run_application(object):
             "sync_path": None,
             "status" : "Peaceful",
             "version": 1
+            },
+            {'asset': "TRex",
+            "sync_filename" : "Trex_texture_v003.psd",
+            "sync_path": None,
+            "status" : "Mad",
+            "version": 2
             }
         ]
         self.run()
