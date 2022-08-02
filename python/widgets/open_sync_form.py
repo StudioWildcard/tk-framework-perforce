@@ -26,179 +26,23 @@ from .utils import PrefFile, open_browser
 # file base for accessing Qt resources outside of resource scope
 basepath = os.path.dirname(os.path.abspath(__file__))
 
-class TreeItem(object):
-    def __init__(self, data, parent=None):
-        self.parentItem = parent
-        self.itemData = data
-        self.childItems = []
-
-    def appendChild(self, item):
-        self.childItems.append(item)
-
-    def child(self, row):
-        return self.childItems[row]
-
-    def childCount(self):
-        return len(self.childItems)
-
-    def columnCount(self):
-        return len(self.itemData)
-
-    def data(self, column):
-        try:
-            return self.itemData[column]
-        except IndexError:
-            return None
-
-    def parent(self):
-        return self.parentItem
-
-    def row(self):
-        if self.parentItem:
-            return self.parentItem.childItems.index(self)
-
-        return 0
+"""
+- Filter button menu factory
+- Open Context Menu
+- Update Available Filters
 
 
-class TreeModel(QtCore.QAbstractItemModel):
-    def __init__(self, data, parent=None):
-        super(TreeModel, self).__init__(parent)
+Flow:
+Multi-modal:
 
-        self.rootItem = TreeItem(("Title", "Summary"))
-        self.setupModelData(data.split('\n'), self.rootItem)
-
-    def columnCount(self, parent):
-        if parent.isValid():
-            return parent.internalPointer().columnCount()
-        else:
-            return self.rootItem.columnCount()
-
-    def data(self, index, role):
-        if not index.isValid():
-            return None
-
-        if role != QtCore.Qt.DisplayRole:
-            return None
-
-        item = index.internalPointer()
-
-        return item.data(index.column())
-
-    # def handle_case_we_wish_to_hide(item, handler):
-        
-    #     case = handler.does_make_the_case(item)
-
-
-    def flags(self, index):
-        if not index.isValid():
-            return QtCore.Qt.NoItemFlags
-
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
-    def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return self.rootItem.data(section)
-
-        return None
-
-    def index(self, row, column, parent):
-        if not self.hasIndex(row, column, parent):
-            return QtCore.QModelIndex()
-
-        if not parent.isValid():
-            parentItem = self.rootItem
-        else:
-            parentItem = parent.internalPointer()
-
-        childItem = parentItem.child(row)
-        if childItem:
-            return self.createIndex(row, column, childItem)
-        else:
-            return QtCore.QModelIndex()
-
-   
-
-    def parent(self, index):
-        if not index.isValid():
-            return QtCore.QModelIndex()
-
-        childItem = index.internalPointer()
-        parentItem = childItem.parent()
-
-        if parentItem == self.rootItem:
-            return QtCore.QModelIndex()
-
-        return self.createIndex(parentItem.row(), 0, parentItem)
-
-    def rowCount(self, parent):
-        if parent.column() > 0:
-            return 0
-
-        if not parent.isValid():
-            parentItem = self.rootItem
-        else:
-            parentItem = parent.internalPointer()
-
-        return parentItem.childCount()
-
-    def setupModelData(self, lines, parent):
-        parents = [parent]
-        indentations = [0]
-
-        number = 0
-
-        while number < len(lines):
-            position = 0
-            while position < len(lines[number]):
-                if lines[number][position] != b' ':
-                    break
-                position += 1
-
-            lineData = lines[number][position:].trimmed()
-
-            if lineData:
-                # Read the column data from the rest of the line.
-                columnData = [s for s in lineData.split('\t') if s]
-
-                if position > indentations[-1]:
-                    # The last child of the current parent is now the new
-                    # parent unless the current parent has no children.
-
-                    if parents[-1].childCount() > 0:
-                        parents.append(parents[-1].child(parents[-1].childCount() - 1))
-                        indentations.append(position)
-
-                else:
-                    while position < indentations[-1] and len(parents) > 0:
-                        parents.pop()
-                        indentations.pop()
-
-                # Append a new item to the current parent's list of children.
-                parents[-1].appendChild(TreeItem(columnData, parents[-1]))
-
-            number += 1
-
-
-class SyncFormMVC(QtGui.QWidget):
-
-    _fw = None
-    _p4 = None
-        
-    def __init__(self, parent_sgtk_app, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-
-        self.master_layout = QtGui.QHBoxLayout()
-        self.setLayout(self.master_layout)
-
-        f = QtCore.QFile(os.path.join(basepath, 'resources', "data.txt"))
-        f.open(QtCore.QIODevice.ReadOnly)
-        self.model = TreeModel(f.readAll())
-        f.close()
-
-        self.view = QtGui.QTreeView()
-        self.view.setModel(self.model)
-
-        self.master_layout.addWidget(self.view)
+1. Entities are correlated into root paths, root paths requested from p4 via client-view-spec definition.
+2. We get status on syncing requirements our provided client view spec definition
+3. We add the p4 status to the original entity json requiring syncing. 
+4. We scrape the extension/other details of the file and feed it to our filter manager to dynamically populate the filters. 
+5. We decide on a way of viewing the data (schema) and feed the list of P4/SG data dicts to our model/view to render. 
+6. We update our model view with relevant user options 
+7. User decides to sync
+"""
 
 class SyncForm(QtGui.QWidget):
 
@@ -225,6 +69,7 @@ class SyncForm(QtGui.QWidget):
         self.fw.log_error(traceback.format_exc())
 
     def scan(self):
+        # old storage we likely dont need. Lets find out. 
         self._asset_item_info = {}
         self._asset_items = {}
         self._sync_items = {}
@@ -257,15 +102,15 @@ class SyncForm(QtGui.QWidget):
         self.make_widgets()
         self.setup_ui()
 
-        # add assets and what we want to sync into the view
-        if self.entities_to_sync:
-            self.populate_assets()
-        else:
-            self._do.setVisible(False)
-            self._asset_tree.setVisible(False)
-            self._progress_bar.setRange(0, 1)
-            self._progress_bar.setValue(0)
-            self.set_progress_message("Please use Perforce Sync with a chosen context. None detected.", percentf=" ")
+        # # add assets and what we want to sync into the view
+        # if self.entities_to_sync:
+        #     self.populate_assets()
+        # else:
+        #     self._do.setVisible(False)
+        #     self._asset_tree.setVisible(False)
+        #     self._progress_bar.setRange(0, 1)
+        #     self._progress_bar.setValue(0)
+        #     self.set_progress_message("Please use Perforce Sync with a chosen context. None detected.", percentf=" ")
 
     def rescan(self):
         self._asset_tree.clear()
@@ -288,6 +133,7 @@ class SyncForm(QtGui.QWidget):
         if not self._p4:
             self._p4 = self.fw.connection.connect()
         return self._p4
+        
 
     def make_widgets(self):
         """
@@ -314,11 +160,7 @@ class SyncForm(QtGui.QWidget):
         self._force_sync.setText("Force Sync")
 
         self._rescan = QtGui.QPushButton("Rescan")
-
-  
-
-
-       
+     
 
     def setup_ui(self):
         """
@@ -338,6 +180,8 @@ class SyncForm(QtGui.QWidget):
         for h in self.tree_header:
             setattr(self, h.replace(' ', "_").upper(), self.tree_header.index(h))
 
+        
+        # set main tree style        
         self._asset_tree.setAnimated(True)
         self._asset_tree_header = QtGui.QTreeWidgetItem(self.tree_header)
         self._asset_tree.setHeaderItem(self._asset_tree_header)  
@@ -395,7 +239,7 @@ class SyncForm(QtGui.QWidget):
 
 
     def button_menu_factory(self, name= None ):
-
+        # sets up a filter for use in 
         width = 80
         short_name = name.lower().replace(" ", "")
         if name in self.filter_sizes.keys():
@@ -579,6 +423,7 @@ class SyncForm(QtGui.QWidget):
 
     def update_sync_counter(self, asset_name):
         """
+        TODO: add to main model logic
         Update the top-level count of how many items there are to sync for an asset upon filters being applied
         """
         asset_dict = self._asset_items.get(asset_name)
@@ -605,6 +450,8 @@ class SyncForm(QtGui.QWidget):
 
     def update_available_filters(self, filter_info):
         """
+        
+        TODO: implement during scraping/transformation of data
         Populate the steps filter menu as steps are discovered in the p4 scan search
         """
         try:
@@ -664,6 +511,7 @@ class SyncForm(QtGui.QWidget):
 
     def make_sync_tree_item(self, sync_item_info):
         """
+        Deprecate:
         Creates child QTreeWidgetItem under asset item to display filename and status of the sync
         """
         #self.fw.log_info('trying to make child item for {}'.format(sync_item_info))
@@ -824,6 +672,7 @@ class SyncForm(QtGui.QWidget):
 
     def sync_in_progress(self, sync_item):
         """
+        TODO: add functionality to model or item method
         Handle signal from SyncWorker.started to inform user that sync has started within sync_item_widget. 
         This sync_item_widget is looked up from our global asset dictionary using the signal payload arg [dict]
         """
@@ -844,6 +693,7 @@ class SyncForm(QtGui.QWidget):
 
     def item_syncd(self, sync_item):
         """
+        TODO: add functionality to model or item method
         Handle signal from SyncWorker.progress to display sync status in sync_item_widget. 
         This sync_item_widget is looked up from our global asset dictionary using the signal payload arg [dict]
         """
