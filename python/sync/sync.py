@@ -119,9 +119,11 @@ class SyncHandler(object):
         try:
             from ..widgets import SyncApp
             sync_app = SyncApp(self.app, self.entities_to_sync, self.specific_files)
-            e = sync_app.ui
+            
 
-            result, _ = self._fw.engine.show_modal("Perforce Sync ", self._fw, sync_app.ui)
+            result, widget = self._fw.engine.show_modal("Perforce Sync ", self._fw, sync_app.ui_class)
+            sync_app.ui = widget
+            sync_app.ui.utils.render_to_image()
 
             if result == QtGui.QDialog.Accepted:
                 pass
