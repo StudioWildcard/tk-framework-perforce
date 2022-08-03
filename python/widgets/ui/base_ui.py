@@ -1,3 +1,4 @@
+from inspect import trace
 from sgtk.platform.qt import QtCore, QtGui
 import traceback
 import logging
@@ -9,7 +10,7 @@ class Ui_Generic(QtGui.QWidget):
         """
         Construction of sync UI
         """
-        QtGui.QWidget.__init__(self, parent)
+        super().__init__(parent)
 
         self.parent = parent
 
@@ -17,16 +18,13 @@ class Ui_Generic(QtGui.QWidget):
 
         self._enabled_state_toggle_widgets = []
 
-        self.make_widgets()
-        self.make_layouts()
+        self.construct_widget()
 
-        self.setup_ui()
-        self.setup_events()
 
     @property    
     def logger(self):
         if not self._logger:
-            self._logger = logging.getLogger(__name__)
+            self._logger = logging.getLogger("genui")
         return self._logger
     
     
@@ -58,6 +56,19 @@ class Ui_Generic(QtGui.QWidget):
         """
         self.logger.info("We don't have event connections implemented in this UI.")
         return None
+
+    def construct_widget(self):
+        try:
+            self.make_widgets()
+            self.make_layouts()
+
+            self.setup_ui()
+            self.setup_events()
+
+            self.logger.info("Base NEXODUS Qt Widget Constructed...")
+            raise Exception('derp')
+        except Exception as e:
+            self.logger.error(traceback.format_exc())
 
     def _centrally_control_enabled_state(self, widget):
         """
