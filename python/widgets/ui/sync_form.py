@@ -1,15 +1,19 @@
 import traceback
 from .base_ui import Ui_Generic
+from sgtk.platform.qt import QtCore, QtGui
+
 
 
 class Ui_SyncForm(Ui_Generic):
   
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent, app, **kwargs):
         """
         Construction of sync UI
-        """
+        """    
+        self.sync_app = app
+        self.sg = self.sync_app.app.sg
+        
         super().__init__(parent, **kwargs)
-
 
 
     def make_widgets(self):
@@ -36,8 +40,8 @@ class Ui_SyncForm(Ui_Generic):
         self._force_sync = QtGui.QCheckBox()
         self._force_sync.setText("Force Sync")
 
-        self._rescan = QtGui.QPushButton("Rescan")
-     
+        #self._rescan = QtGui.QPushButton("Rescan")
+        self._rescan = QtGui.QPushButton(str(self.sync_app))    
 
     def setup_ui(self):
         """
