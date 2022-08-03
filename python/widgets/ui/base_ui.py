@@ -87,7 +87,12 @@ class Ui_Generic(QtGui.QWidget):
             self._logger = logging.getLogger("genui")
         return self._logger
     
-
+    def make_components(self):
+        """
+        Main function to add Qt components to the app
+        """
+        self.logger.info("We don't have event connections implemented in this UI.")
+        return None
 
     def make_widgets(self):
         """
@@ -120,6 +125,7 @@ class Ui_Generic(QtGui.QWidget):
 
     def construct_widget(self):
         try:
+            self.make_components()
             self.make_widgets()
             self.make_layouts()
 
