@@ -1,9 +1,34 @@
-from inspect import trace
 from sgtk.platform.qt import QtCore, QtGui
 import traceback
 import logging
 from ..utils import PrefFile, open_browser
+import os
 
+
+class Ui_Utilities:
+    def __init__(self, main_widget):
+        self.main_widget = main_widget
+        self.prefs = PrefFile()
+        if not self.prefs.data.get('hide_syncd'):
+            self.prefs.data['hide_syncd'] = True
+            self.prefs.write()
+            self.prefs.read()
+
+    def render_to_image(self, image_file_path="my_screenshot.png"):
+
+        # define where to save the screenshot
+        basepath = os.path.dirname(os.path.abspath(__file__))
+        # print(basepath,'this is basepath')
+        screenshot_path = os.path.join(basepath, image_file_path)
+        # print(screenshot_path, 'this is screen path')
+        
+        # bake the ui
+        self.screenshot_pixmap = QtGui.QPixmap(self.main_widget.size())
+        self.main_widget.render(self.screenshot_pixmap)
+
+        # save to disk
+        os.remove(screenshot_path)
+        self.screenshot_pixmap.save(screenshot_path)
 
 class Ui_Generic(QtGui.QWidget):
   
@@ -17,14 +42,12 @@ class Ui_Generic(QtGui.QWidget):
 
         self._logger = logger
 
+        self.utils = Ui_Utilities(self)
+
         # keep track of arbitrary widgets to disable/enable    
         self._enabled_state_toggle_widgets = []
 
-        self.prefs = PrefFile()
-        if not self.prefs.data.get('hide_syncd'):
-            self.prefs.data['hide_syncd'] = True
-            self.prefs.write()
-            self.prefs.read()
+
 
         self.construct_widget()
 
@@ -38,13 +61,15 @@ class Ui_Generic(QtGui.QWidget):
         """
         Sync UI state and prefs locally to use for persistent UI features
         """
-        self.fw.log_info("Saving state for UI: {}".format(state_str))
+        self.logger.info("Saving state for UI: {}".format(state_str))
         try:
-            data = self.prefs.read()
+            data = self.utils.prefs.read()
             data.update(self.preferences)
-            self.prefs.write(data)
+            self.utils.prefs.write(data)
         except Exception as e:
             self.log_error(e)
+
+
 
 
     def resizeEvent( self, event ):
