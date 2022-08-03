@@ -107,8 +107,8 @@ class SyncApp():
         #     self.prefs.data['force_sync'] = False
         #     self.prefs.write()
         #     self.prefs.read()
-        self.threadpool = QtCore.QThreadPool.globalInstance()
-        self.threadpool.setMaxThreadCount(min(24, self.threadpool.maxThreadCount()))
+        # self.threadpool = QtCore.QThreadPool.globalInstance()
+        # self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
 
         # creat UI elements and arrange them
         self.make_widgets()
@@ -124,9 +124,9 @@ class SyncApp():
         #     self._progress_bar.setValue(0)
         #     self.set_progress_message("Please use Perforce Sync with a chosen context. None detected.", percentf=" ")
 
-    def rescan(self):
-        self._asset_tree.clear()
-        self.populate_assets()
+    # def rescan(self):
+    #     self._asset_tree.clear()
+    #     self.populate_assets()
 
     @property
     def fw(self):
@@ -250,38 +250,38 @@ class SyncApp():
     #         self._force_sync.setVisible(False)
 
 
-    def button_menu_factory(self, name= None ):
-        # sets up a filter for use in 
-        width = 80
-        short_name = name.lower().replace(" ", "")
-        if name in self.filter_sizes.keys():
-            width = self.filter_sizes.get(name)
+    # def button_menu_factory(self, name= None ):
+    #     # sets up a filter for use in 
+    #     width = 80
+    #     short_name = name.lower().replace(" ", "")
+    #     if name in self.filter_sizes.keys():
+    #         width = self.filter_sizes.get(name)
 
-        setattr(self, "_{}_filter".format(short_name), QtGui.QToolButton())
-        setattr(self, "_{}_menu".format(short_name), QtGui.QMenu())
-        setattr(self, "_{}_actions".format(short_name), {})
+    #     setattr(self, "_{}_filter".format(short_name), QtGui.QToolButton())
+    #     setattr(self, "_{}_menu".format(short_name), QtGui.QMenu())
+    #     setattr(self, "_{}_actions".format(short_name), {})
 
-        btn = getattr(self, "_{}_filter".format(short_name))
-        menu = getattr(self, "_{}_menu".format(short_name))
+    #     btn = getattr(self, "_{}_filter".format(short_name))
+    #     menu = getattr(self, "_{}_menu".format(short_name))
        
-        btn.setFixedWidth(width) 
-        btn.setText(name)
-        btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        btn.setMenu(menu)
-        btn.setPopupMode(QtGui.QToolButton.InstantPopup)
+    #     btn.setFixedWidth(width) 
+    #     btn.setText(name)
+    #     btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+    #     btn.setMenu(menu)
+    #     btn.setPopupMode(QtGui.QToolButton.InstantPopup)
 
-        menu.setFixedWidth(width)
-        menu.setTearOffEnabled(True)
+    #     menu.setFixedWidth(width)
+    #     menu.setTearOffEnabled(True)
 
-        self._menu_layout.addWidget(btn)
+    #     self._menu_layout.addWidget(btn)
 
 
     def resizeEvent( self, event ):
-        """
-        Keep track of window_size
-        """
-        QtGui.QWidget.resizeEvent( self, event )
-        self.save_ui_state()
+    #     """
+    #     Keep track of window_size
+    #     """
+    #     QtGui.QWidget.resizeEvent( self, event )
+         self.save_ui_state()
 
 
 
@@ -314,38 +314,38 @@ class SyncApp():
 
 
 
-    def save_ui_state(self, state_str=None):
-        """
-        Sync UI state and prefs locally to use for persistent UI features
-        """
-        self.fw.log_info("Saving state for UI: {}".format(state_str))
-        try:
-            data = self.prefs.read()
-            data["hide_syncd"] = self._hide_syncd.isChecked()
-            data['window_size'] = [self.width(), self.height()]
-            data["force_sync"] = self._force_sync.isChecked()
+    # def save_ui_state(self, state_str=None):
+    #     """
+    #     Sync UI state and prefs locally to use for persistent UI features
+    #     """
+    #     self.fw.log_info("Saving state for UI: {}".format(state_str))
+    #     try:
+    #         data = self.prefs.read()
+    #         data["hide_syncd"] = self._hide_syncd.isChecked()
+    #         data['window_size'] = [self.width(), self.height()]
+    #         data["force_sync"] = self._force_sync.isChecked()
 
-            # save step filters~
-            for f in self.use_filters:
-                f = f.lower()
-                filter_name = "{}_filters".format(f)
-                filter_data = {}
+    #         # save step filters~
+    #         for f in self.use_filters:
+    #             f = f.lower()
+    #             filter_name = "{}_filters".format(f)
+    #             filter_data = {}
 
-                # use existing filter data if exists
-                if data.get(filter_name):
-                    filter_data = data.get(filter_name)
-                # overwrite it with  our scan of presently checked items
-                if hasattr(self, "_{}_actions".format(f)):
-                    actions = getattr(self, "_{}_actions".format(f))
-                    if actions:
-                        for k,v in actions.items():
-                            filter_data[k] = v.isChecked()
+    #             # use existing filter data if exists
+    #             if data.get(filter_name):
+    #                 filter_data = data.get(filter_name)
+    #             # overwrite it with  our scan of presently checked items
+    #             if hasattr(self, "_{}_actions".format(f)):
+    #                 actions = getattr(self, "_{}_actions".format(f))
+    #                 if actions:
+    #                     for k,v in actions.items():
+    #                         filter_data[k] = v.isChecked()
 
-                data[filter_name] = filter_data
+    #             data[filter_name] = filter_data
             
-                self.prefs.write(data)
-        except Exception as e:
-            self.log_error(e)
+    #             self.prefs.write(data)
+    #     except Exception as e:
+    #         self.log_error(e)
 
     def filter_syncd_items(self):
         """
