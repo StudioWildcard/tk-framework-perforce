@@ -43,8 +43,10 @@ Multi-modal:
 6. We update our model view with relevant user options 
 7. User decides to sync
 """
+from .ui.sync_form import Ui_SyncForm
 
-class SyncForm(QtGui.QWidget):
+
+class SyncForm(Ui_SyncForm):
 
     _fw = None
     _p4 = None
@@ -55,14 +57,14 @@ class SyncForm(QtGui.QWidget):
         """
         Construction of sync UI
         """
-        QtGui.QWidget.__init__(self, parent)
+        super().__init__(parent)
 
-        self.parent = parent
+        # self.parent = parent
 
-        self.app = parent_sgtk_app
-        self.entities_to_sync = entities_to_sync
-        self.specific_files= specific_files
-        self.scan()
+        # self.app = parent_sgtk_app
+        # self.entities_to_sync = entities_to_sync
+        # self.specific_files= specific_files
+        # self.scan()
 
     def log_error(self, e):
         self.fw.log_error(str(e))
@@ -135,107 +137,107 @@ class SyncForm(QtGui.QWidget):
         return self._p4
         
 
-    def make_widgets(self):
-        """
-        Makes UI widgets for the main form
-        """
+    # def make_widgets(self):
+    #     """
+    #     Makes UI widgets for the main form
+    #     """
 
-        # bring in global SG search widget when there arent Assets given already to the app
-        # search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "global_search_widget")
-        # self.search_line_edit = search_widget.GlobalSearchWidget(self)    
+    #     # bring in global SG search widget when there arent Assets given already to the app
+    #     # search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "global_search_widget")
+    #     # self.search_line_edit = search_widget.GlobalSearchWidget(self)    
 
-        self._do = QtGui.QPushButton("Sync")
-        self._asset_tree = QtGui.QTreeWidget()
+    #     self._do = QtGui.QPushButton("Sync")
+    #     self._asset_tree = QtGui.QTreeWidget()
 
-        self._asset_tree.clear()
-        self._progress_bar = QtGui.QProgressBar()
-        self._list = QtGui.QListWidget()
-        self._line_edit = QtGui.QLineEdit()
-        self._line_edit.setText(" ")
+    #     self._asset_tree.clear()
+    #     self._progress_bar = QtGui.QProgressBar()
+    #     self._list = QtGui.QListWidget()
+    #     self._line_edit = QtGui.QLineEdit()
+    #     self._line_edit.setText(" ")
 
-        self._step_filter_label = QtGui.QLabel("Show/Sync Steps:")
-        self._hide_syncd = QtGui.QCheckBox()
+    #     self._step_filter_label = QtGui.QLabel("Show/Sync Steps:")
+    #     self._hide_syncd = QtGui.QCheckBox()
 
-        self._force_sync = QtGui.QCheckBox()
-        self._force_sync.setText("Force Sync")
+    #     self._force_sync = QtGui.QCheckBox()
+    #     self._force_sync.setText("Force Sync")
 
-        self._rescan = QtGui.QPushButton("Rescan")
+    #     self._rescan = QtGui.QPushButton("Rescan")
      
 
-    def setup_ui(self):
-        """
-        Lays out and customizes widgets for the main form
-        """       
-        # set main layout
-        self._main_layout = QtGui.QVBoxLayout()
-        self._menu_layout = QtGui.QHBoxLayout()
+    # def setup_ui(self):
+    #     """
+    #     Lays out and customizes widgets for the main form
+    #     """       
+    #     # set main layout
+    #     self._main_layout = QtGui.QVBoxLayout()
+    #     self._menu_layout = QtGui.QHBoxLayout()
         
-        self.setLayout(self._main_layout)
+    #     self.setLayout(self._main_layout)
 
-        # hide progress until we run the sync
-        self._progress_bar.setVisible(False)
+    #     # hide progress until we run the sync
+    #     self._progress_bar.setVisible(False)
 
-        # asset tree setup
-        self.tree_header = ["Asset Name", "Status", "Detail"]
-        for h in self.tree_header:
-            setattr(self, h.replace(' ', "_").upper(), self.tree_header.index(h))
+    #     # asset tree setup
+    #     self.tree_header = ["Asset Name", "Status", "Detail"]
+    #     for h in self.tree_header:
+    #         setattr(self, h.replace(' ', "_").upper(), self.tree_header.index(h))
 
         
-        # set main tree style        
-        self._asset_tree.setAnimated(True)
-        self._asset_tree_header = QtGui.QTreeWidgetItem(self.tree_header)
-        self._asset_tree.setHeaderItem(self._asset_tree_header)  
-        self._asset_tree.setWordWrap(True)
-        self._asset_tree.setColumnWidth(0, 150)
-        self._asset_tree.setColumnWidth(1, 160)
+    #     # set main tree style        
+    #     self._asset_tree.setAnimated(True)
+    #     self._asset_tree_header = QtGui.QTreeWidgetItem(self.tree_header)
+    #     self._asset_tree.setHeaderItem(self._asset_tree_header)  
+    #     self._asset_tree.setWordWrap(True)
+    #     self._asset_tree.setColumnWidth(0, 150)
+    #     self._asset_tree.setColumnWidth(1, 160)
 
-        self._hide_syncd.setText("Hide if nothing to sync")
-        self._hide_syncd.stateChanged.connect(self.save_ui_state)
-        self._hide_syncd.stateChanged.connect(self.filter_syncd_items )
-        self._hide_syncd.setChecked(self.prefs.data.get('hide_syncd'))
+    #     self._hide_syncd.setText("Hide if nothing to sync")
+    #     self._hide_syncd.stateChanged.connect(self.save_ui_state)
+    #     self._hide_syncd.stateChanged.connect(self.filter_syncd_items )
+    #     self._hide_syncd.setChecked(self.prefs.data.get('hide_syncd'))
 
-        self._force_sync.stateChanged.connect(self.save_ui_state)
-        self._force_sync.stateChanged.connect(self.rescan)
-        self._force_sync.setChecked(self.prefs.data.get('force_sync'))
+    #     self._force_sync.stateChanged.connect(self.save_ui_state)
+    #     self._force_sync.stateChanged.connect(self.rescan)
+    #     self._force_sync.setChecked(self.prefs.data.get('force_sync'))
 
 
-        self._menu_layout.addWidget(self._hide_syncd)
-        self._menu_layout.addStretch()
-        #self._menu_layout.addWidget(self._step_filter_label)
+    #     self._menu_layout.addWidget(self._hide_syncd)
+    #     self._menu_layout.addStretch()
+    #     #self._menu_layout.addWidget(self._step_filter_label)
 
-        self.sync_layout = QtGui.QHBoxLayout()
-        self.sync_layout.addWidget(self._rescan,  3)
-        self.sync_layout.addWidget(self._do,  10)
-        self.sync_layout.addWidget(self._force_sync, 1)
+    #     self.sync_layout = QtGui.QHBoxLayout()
+    #     self.sync_layout.addWidget(self._rescan,  3)
+    #     self.sync_layout.addWidget(self._do,  10)
+    #     self.sync_layout.addWidget(self._force_sync, 1)
 
-        # arrange widgets in layout
-        self._main_layout.addLayout(self._menu_layout)
-        self._main_layout.addWidget( self._asset_tree)
-        self._main_layout.addWidget(self._progress_bar)
-        self._main_layout.addLayout(self.sync_layout)
+    #     # arrange widgets in layout
+    #     self._main_layout.addLayout(self._menu_layout)
+    #     self._main_layout.addWidget( self._asset_tree)
+    #     self._main_layout.addWidget(self._progress_bar)
+    #     self._main_layout.addLayout(self.sync_layout)
 
-        # css
-        self.setStyleSheet("""
-            QTreeWidget::item { padding: 5px; }
-            QAction  { padding: 10px; }
-        """ )
+    #     # css
+    #     self.setStyleSheet("""
+    #         QTreeWidget::item { padding: 5px; }
+    #         QAction  { padding: 10px; }
+    #     """ )
         
-        # signal connections
-        self._do.clicked.connect(self.start_sync)
+    #     # signal connections
+    #     self._do.clicked.connect(self.start_sync)
 
-        for f in self.use_filters:
-            self.button_menu_factory(f)
+    #     for f in self.use_filters:
+    #         self.button_menu_factory(f)
         
-        # connect right_click_menu to tree
-        self._asset_tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self._asset_tree.customContextMenuRequested.connect(self.open_context_menu)
+    #     # connect right_click_menu to tree
+    #     self._asset_tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+    #     self._asset_tree.customContextMenuRequested.connect(self.open_context_menu)
 
-        self._rescan.clicked.connect(self.rescan)
-        self.set_ui_interactive(False)
+    #     self._rescan.clicked.connect(self.rescan)
+    #     self.set_ui_interactive(False)
 
-        if self.specific_files:
-            self._rescan.setVisible(False)
-            self._force_sync.setVisible(False)
+    #     if self.specific_files:
+    #         self._rescan.setVisible(False)
+    #         self._force_sync.setVisible(False)
 
 
     def button_menu_factory(self, name= None ):
@@ -408,18 +410,18 @@ class SyncForm(QtGui.QWidget):
         except Exception as e:
             self.log_error(e)
 
-    def set_ui_interactive(self, state):
-        """
-        Common utility to lock the UI while info-gathering or syncing is occuring
-        """
-        # toggle the installed filters
-        for f in self.use_filters:
-            f = f.lower()
-            getattr(self, "_{}_filter".format(f)).setEnabled(state)
+    # def set_ui_interactive(self, state):
+    #     """
+    #     Common utility to lock the UI while info-gathering or syncing is occuring
+    #     """
+    #     # toggle the installed filters
+    #     for f in self.use_filters:
+    #         f = f.lower()
+    #         getattr(self, "_{}_filter".format(f)).setEnabled(state)
 
-        self._hide_syncd.setEnabled(state)
-        self._do.setEnabled(state)  
-        self._force_sync.setEnabled(state)
+    #     self._hide_syncd.setEnabled(state)
+    #     self._do.setEnabled(state)  
+    #     self._force_sync.setEnabled(state)
 
     def update_sync_counter(self, asset_name):
         """
@@ -672,7 +674,7 @@ class SyncForm(QtGui.QWidget):
 
     def sync_in_progress(self, sync_item):
         """
-        TODO: add functionality to model or item method
+        TODO: 
         Handle signal from SyncWorker.started to inform user that sync has started within sync_item_widget. 
         This sync_item_widget is looked up from our global asset dictionary using the signal payload arg [dict]
         """
