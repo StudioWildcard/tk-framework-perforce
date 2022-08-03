@@ -117,10 +117,11 @@ class SyncHandler(object):
         user = self._fw.execute_hook("hook_get_perforce_user", sg_user=sg_user)
 
         try:
-            from ..widgets import SyncForm
+            from ..widgets import SyncApp
+            sync_app = SyncApp(self.app, self.entities_to_sync, self.specific_files)
+            e = sync_app.ui
 
-            result, _ = self._fw.engine.show_modal("Perforce Sync ", self._fw, SyncForm, 
-                                                   self.app, self.entities_to_sync, self.specific_files)
+            result, _ = self._fw.engine.show_modal("Perforce Sync ", self._fw, sync_app.ui)
 
             if result == QtGui.QDialog.Accepted:
                 pass
