@@ -1,8 +1,8 @@
 import traceback
 from .base_ui import Ui_Generic
 from sgtk.platform.qt import QtCore, QtGui
-
-
+from ..item_schemas import ItemSchema
+from ..base_model import MultiModel
 
 class Ui_SyncForm(Ui_Generic):
   
@@ -13,16 +13,24 @@ class Ui_SyncForm(Ui_Generic):
         self.sync_app = app
         self.sg = self.sync_app.fw
 
-        self.threadpool = QtCore.QThreadPool.globalInstance()
-        self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
+
 
         super().__init__(parent, **kwargs)
+
+
+    def make_components(self):
+        self.schema = ItemSchema
+
+        self.threadpool = QtCore.QThreadPool.globalInstance()
+        self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
 
 
     def make_widgets(self):
         """
         Makes UI widgets for the main form
         """ 
+
+
 
         self.use_filters = ["dog", "cat"]
 
@@ -47,6 +55,35 @@ class Ui_SyncForm(Ui_Generic):
 
         self._rescan = QtGui.QPushButton("Rescan")
          
+        # self.data = data
+
+        # self.master_layout = QtGui.QVBoxLayout()
+        # self.setLayout(self.master_layout)
+
+        self.model = MultiModel(self.sync_app.data)
+        # self.proxy_model = SortFilterModel(excludes=['TRex'], parent=self)
+        # self.proxy_model.setSourceModel(self.model)
+        # self.proxy_model.setDynamicSortFilter(True)
+
+
+        self.tree_view =QtGui.QTreeView()
+        self.tree_view.setModel(self.model)
+        # self.tree_view.setItemDelegateForColumn(1, MultiDelegate(self.tree_view))
+        # self.tree_view.setItemDelegateForColumn(2, DoubleSpinBoxDelegate(self.tree_view))
+        self.tree_view.expandAll()
+
+        # self.list_view = QListView()
+        # self.list_view.setModel(self.model)
+
+        # self.table_view = QTableView()
+        # self.table_view.setModel(self.model)
+
+
+        # self.master_layout.addWidget(self.tree_view)
+        # self.master_layout.addWidget(self.list_view)
+        # self.master_layout.addWidget(self.table_view)
+
+
 
     def setup_ui(self):
         """
@@ -83,7 +120,7 @@ class Ui_SyncForm(Ui_Generic):
 
         # arrange widgets in layout
         self._main_layout.addLayout(self._menu_layout)
-        self._main_layout.addWidget( self._asset_tree)
+        self._main_layout.addWidget( self.tree_view)
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
 
