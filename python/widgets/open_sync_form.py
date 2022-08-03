@@ -44,19 +44,14 @@ Multi-modal:
 7. User decides to sync
 """
 from .ui.sync_form import Ui_SyncForm
-import functools
+from .utils import partialclass
 
-def partialclass(cls, *args, **kwds):
-
-    class NewCls(cls):
-        __init__ = functools.partialmethod(cls.__init__, *args, **kwds)
-
-    return NewCls
 
 class SyncApp():
 
     _fw = None
     _p4 = None
+    _ui = None
         
     progress = 0
     
@@ -64,17 +59,28 @@ class SyncApp():
         """
         Construction of sync UI
         """
+        self.parent = parent
         
-        self.ui = partialclass(Ui_SyncForm, parent, self, logger=parent_sgtk_app.logger)
-        
-
         # self.parent = parent
 
-        # self.app = parent_sgtk_app
+        self.parent_sgtk_app = parent_sgtk_app
         # self.entities_to_sync = entities_to_sync
         # self.specific_files= specific_files
         # self.scan()
 
+    @property
+    def ui(self):
+        if not self._ui:
+            self._ui = self.ui_class()
+        return self._ui
+
+    @ui.setter
+    def ui(self, ui):
+        self._ui = ui
+
+    @property
+    def ui_class(self):
+        return partialclass(Ui_SyncForm, self.parent, self, logger=self.parent_sgtk_app.logger)
 
     def log_error(self, e):
         self.fw.log_error(str(e))
@@ -97,11 +103,11 @@ class SyncApp():
         }
 
         # init preferences
-        self.prefs = PrefFile()
-        if not self.prefs.data.get('hide_syncd'):
-            self.prefs.data['hide_syncd'] = True
-            self.prefs.write()
-            self.prefs.read()
+        # self.prefs = PrefFile()
+        # if not self.prefs.data.get('hide_syncd'):
+        #     self.prefs.data['hide_syncd'] = True
+        #     self.prefs.write()
+        #     self.prefs.read()
 
         # if not self.prefs.data.get('force_sync'):
         #     self.prefs.data['force_sync'] = False
