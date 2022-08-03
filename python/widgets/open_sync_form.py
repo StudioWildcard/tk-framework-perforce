@@ -44,9 +44,16 @@ Multi-modal:
 7. User decides to sync
 """
 from .ui.sync_form import Ui_SyncForm
+import functools
 
+def partialclass(cls, *args, **kwds):
 
-class SyncForm(Ui_SyncForm):
+    class NewCls(cls):
+        __init__ = functools.partialmethod(cls.__init__, *args, **kwds)
+
+    return NewCls
+
+class SyncApp():
 
     _fw = None
     _p4 = None
@@ -57,7 +64,9 @@ class SyncForm(Ui_SyncForm):
         """
         Construction of sync UI
         """
-        super().__init__(parent)
+        
+        self.ui = partialclass(Ui_SyncForm, parent, self, logger=parent_sgtk_app.logger)
+        
 
         # self.parent = parent
 
@@ -65,6 +74,7 @@ class SyncForm(Ui_SyncForm):
         # self.entities_to_sync = entities_to_sync
         # self.specific_files= specific_files
         # self.scan()
+
 
     def log_error(self, e):
         self.fw.log_error(str(e))
