@@ -55,11 +55,33 @@ class SyncApp():
         
     progress = 0
     
-    def __init__(self, parent_sgtk_app, entities_to_sync, specific_files,  parent=None):
+    def __init__(self, parent_sgtk_app, entities_to_sync, specific_files,  parent=None, data=None):
         """
         Construction of sync UI
         """
         self.parent = parent
+
+        self.data = [
+            {'asset': "Ankylo",
+            "sync_filename" : "Ankylo_concept_v001.psd",
+            "sync_path": "/shows/test/Ankylo_concept_v001.psd",
+            "status" : "Peaceful",
+            "version": 1
+            },
+            {'asset': "Ankylo2",
+            "sync_filename" : "Ankylo2_concept_v001.psd",
+            "sync_path": None,
+            "status" : "Peaceful",
+            "version": 1
+            },
+            {'asset': "TRex",
+            "sync_filename" : "Trex_texture_v003.psd",
+            "sync_path": None,
+            "status" : "Mad",
+            "version": 2
+            }
+        
+        ]
         
         # self.parent = parent
 
