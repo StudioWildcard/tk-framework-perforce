@@ -11,15 +11,20 @@ class Ui_SyncForm(Ui_Generic):
         Construction of sync UI
         """    
         self.sync_app = app
-        self.sg = self.sync_app.app.sg
-        
+        self.sg = self.sync_app.fw
+
+        self.threadpool = QtCore.QThreadPool.globalInstance()
+        self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
+
         super().__init__(parent, **kwargs)
 
 
     def make_widgets(self):
         """
         Makes UI widgets for the main form
-        """
+        """ 
+
+        self.use_filters = ["dog", "cat"]
 
         # bring in global SG search widget when there arent Assets given already to the app
         # search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "global_search_widget")
@@ -40,8 +45,8 @@ class Ui_SyncForm(Ui_Generic):
         self._force_sync = QtGui.QCheckBox()
         self._force_sync.setText("Force Sync")
 
-        #self._rescan = QtGui.QPushButton("Rescan")
-        self._rescan = QtGui.QPushButton(str(self.sync_app))    
+        self._rescan = QtGui.QPushButton("Rescan")
+         
 
     def setup_ui(self):
         """
@@ -82,8 +87,8 @@ class Ui_SyncForm(Ui_Generic):
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
 
-        # for f in self.use_filters:
-        #     self.button_menu_factory(f)
+        for f in self.use_filters:
+            self.button_menu_factory(f)
         
         # connect right_click_menu to tree
         # self._asset_tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -93,4 +98,27 @@ class Ui_SyncForm(Ui_Generic):
         self.set_ui_interactive(False)
 
 
+    def button_menu_factory(self, name= None ):
+        # sets up a filter for use in 
+        width = 80
+        short_name = name.lower().replace(" ", "")
+        # if name in self.filter_sizes.keys():
+        #     width = self.filter_sizes.get(name)
 
+        setattr(self, "_{}_filter".format(short_name), QtGui.QToolButton())
+        setattr(self, "_{}_menu".format(short_name), QtGui.QMenu())
+        setattr(self, "_{}_actions".format(short_name), {})
+
+        btn = getattr(self, "_{}_filter".format(short_name))
+        menu = getattr(self, "_{}_menu".format(short_name))
+       
+        btn.setFixedWidth(width) 
+        btn.setText(name)
+        btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        btn.setMenu(menu)
+        btn.setPopupMode(QtGui.QToolButton.InstantPopup)
+
+        menu.setFixedWidth(width)
+        menu.setTearOffEnabled(True)
+
+        self._menu_layout.addWidget(btn)
