@@ -1,11 +1,14 @@
+from fileinput import filename
 import os
 import json
 import webbrowser
+import functools
+
 
 class PrefFile:
-    def __init__(self):
+    def __init__(self, filename= ".p3syncpref"):
         self.root_dir = os.path.expanduser("~")
-        self.pref_file = os.path.join(self.root_dir, ".p4syncpref")
+        self.pref_file = os.path.join(self.root_dir, filename)
         
         self.read()
 
@@ -29,3 +32,11 @@ def open_browser(path):
     Open file in a local file browser using file path uri
     """
     webbrowser.open('file:///' + path)
+
+
+def partialclass(cls, *args, **kwds):
+
+    class NewCls(cls):
+        __init__ = functools.partialmethod(cls.__init__, *args, **kwds)
+
+    return NewCls
