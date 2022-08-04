@@ -108,7 +108,7 @@ class TreeModel(QtCore.QAbstractItemModel):
         row = 0
         parents = []
         for row, d in enumerate(data):
-         sync_item = TreeItem(d)
+            sync_item = TreeItem(d)
 
             # assert meaning to make parent relationship
             if d.get('asset'):

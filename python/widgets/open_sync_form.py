@@ -200,6 +200,7 @@ class SyncFormMVC(QtGui.QWidget):
 
         self.master_layout.addWidget(self.view)
 
+
 class SyncForm(QtGui.QWidget):
 
     _fw = None

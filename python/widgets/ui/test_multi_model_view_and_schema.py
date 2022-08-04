@@ -3,14 +3,80 @@ import sys
 sys.path.append("""C:/Users/cam_admin/AppData/Local/Programs/Python/python37-32/lib/site-packages""".replace("\\", "/"))
 
 import os
-from PySide2 import QtCore
-from PySide2.QtWidgets import QPushButton, QWidget, QHBoxLayout, QVBoxLayout,QApplication, QTreeView, QStyledItemDelegate, QDoubleSpinBox, QListView, QTableView
-from PySide2.QtGui import QPixmap
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QPushButton, QWidget, QHBoxLayout, QVBoxLayout,QApplication, QTreeView, QStyledItemDelegate, QDoubleSpinBox, QListView, QTableView
+from PyQt5.QtGui import QPixmap
 
+class Schema(object):
+    
+    def __init__(self, schema_type=None, schema=None):
+        
+        self.schema = schema
+        self.type = schema_type
+        
+        
+    @property
+    def schema_type(self):
+        return self.schema
+    
+    
+    @property
+    def schema(self):
+        return self.schema
+    
+    
+    @classmethod
+    def set_schema_type(cls, type):
+        
+        """
+        Description: change the schema type after class is created
 
+        type: [str] type for the schema. For example Sync_item.
+        """
+        
+        cls.type = type
+        
+        
+    
+    
+    def validate_schema(self):
+        
+        validation_keys = ['key', 'title', 'Name']
+        
+        try:
+            self.schema['key']
+        except KeyError:
+            print('')
+            
+                    
+                    
+    def create_schema(self, type, key=None, title=None):
+        
+        self.type = type
+        schema = {'default': 'No name'}
+        
+        schema['key'] = key
+        schema['title'] = title
+        
+        
+        #need to validate schema after creation. Should it happen here or should that be a specific call afterwards?
+        self.validate_schema()
+        
+        self.schema = schema
+        
+        
+ 
+        
+                
+            
+                
+        
+    
+
+#this will be the config/schema for the data displayed in tree view
 sync_item_schema = [
     {
-        "key" : "sync_filename",
+        "key" : "sync_filename", #this is a perforce file object
         "title": "Name",
         "default": "No name",
         "delegate" : None
@@ -25,7 +91,14 @@ sync_item_schema = [
         "title": "Version",
         "default": "No Description"
     },
+    {
+        'key' : 'local_version',
+        'title': 'Version',
+        'default': 'no file found on local disk'
+    }
+
 ]
+
 
 asset_item_schema = [ 
     {
@@ -39,9 +112,14 @@ asset_item_schema = [
         "default": "No Description"
     },
     {
-        "key" : "_",
+        "key" : None,
         "title": "Version",
         "default": " "
+    },
+    {
+        "key" : None,
+        'title': 'latest version',
+        'default' : ' '
     }
 
 ]
@@ -91,7 +169,9 @@ class TreeItem(object):
 
 
 class TreeItemSchema(TreeItem):
+    #TODO update TreeItemSchema to handle a schema class object
     def __init__(self, data, schema=None, parent=None, primary=False, **kwargs):
+        
         self._cached_data = []
         self._col_map = [i.get('key') for i in schema]
         self.primary = primary
@@ -287,6 +367,7 @@ class TreeModel(QtCore.QAbstractItemModel):
 class test_class(QWidget):
     
     def __init__(self, data=None) -> None:
+
         super().__init__()
         self.data = data
 
@@ -338,16 +419,16 @@ class run_application(object):
 
 
     def __init__(self) -> None:
-        # self.data = [
-        #     {"children" : ["something", "lkjsdflkjsdf"], "2_version_field_3": }
-        # ]
+
         self.data = [
             {'asset': "Ankylo",
             "sync_filename" : "Ankylo_concept_v001.psd",
             "sync_path": "/shows/test/Ankylo_concept_v001.psd",
             "status" : "Peaceful",
-            "version": 1
+            "version on disk": 1,
+            "latest version" : 0,
             },
+            
             {'asset': "Ankylo2",
             "sync_filename" : "Ankylo2_concept_v001.psd",
             "sync_path": None,
