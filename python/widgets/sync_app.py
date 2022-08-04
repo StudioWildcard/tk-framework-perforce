@@ -54,7 +54,11 @@ class SyncApp():
         Construction of sync UI
         """
         self.parent = parent
-
+        
+        self.workers = {
+            "asset_info": AssetInfoGatherWorker,
+            "sync" : SyncWorker
+        }
         self.data = [
             {'asset': "Ankylo",
             "sync_filename" : "Ankylo_concept_v001.psd",
