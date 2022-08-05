@@ -4,6 +4,24 @@ from .item_schemas import ItemSchema
 
 logger = sgtk.platform.get_logger(__name__)
 
+class SortFilterModel(QtGui.QSortFilterProxyModel):
+    """
+    A proxy model that excludes files from the view
+    that end with the given extension
+    """
+    def __init__(self, excludes, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._excludes = excludes[:]
+
+    def filterAcceptsRow(self, srcRow, srcParent):
+        idx = self.sourceModel().index(srcRow, 0, srcParent)
+        name = idx.data()
+        print("Filtered: {}".format(name))
+        for i in self._excludes:
+            if i in name:
+                return False
+        
+        return True
 
 class MultiModel(QtCore.QAbstractItemModel):
     def __init__(self, data=None, parent=None):
@@ -22,15 +40,17 @@ class MultiModel(QtCore.QAbstractItemModel):
         self.primary_roots = {}
 
 
-    def columnCount(self, parent):
+    def columnCount(self, parent=None):
+        if not parent:
+            parent = self.rootItem
         if parent.isValid():
             return parent.internalPointer().columnCount()
         else:
             return self.rootItem.columnCount()
 
-    def setData(self, index, value, role=None):
-        item = index.internalPointer()
-        item.set_data(index.column(), value)
+    # def setData(self, index, value, role=None):
+    #     item = index.internalPointer()
+    #     item.set_data(index.column(), value)
 
     def data(self, index, role):
         if not index.isValid():
@@ -88,7 +108,9 @@ class MultiModel(QtCore.QAbstractItemModel):
 
         return self.createIndex(parentItem.row(), 0, parentItem)
 
-    def rowCount(self, parent):
+    def rowCount(self, parent=None):
+        # if not parent:
+        #     parent = self.rootItem
         if parent.column() > 0:
             return 0
 
@@ -105,10 +127,14 @@ class MultiModel(QtCore.QAbstractItemModel):
                 asset_item = ItemSchema(data=data_item, parent=self.rootItem, schema='asset_item_schema', primary=True)
                 self.primary_roots[data_item['asset_name']] = asset_item
             sync_item = ItemSchema(data=data_item, parent=self.primary_roots[data_item['asset_name']], schema='sync_item_schema') 
-
+            self.layoutAboutToBeChanged.emit()
+            self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
+            self.layoutChanged.emit()
         #lines is our list
     def setupModelData(self, data, parent):
 
         for list_item in data:
             self.add_row(list_item)
+
+            
             
