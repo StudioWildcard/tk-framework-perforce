@@ -1,10 +1,11 @@
 schemas = {
     "sync_item_schema": [
     {
-        "key" : "sync_filename",
+        "key" : "item_found",
         "title": "Name",
         "default": "No name",
-        "delegate" : None
+        "delegate" : None,
+        "transform" : "sync_item"
     },
     {
         "key" : "sync_path",
@@ -20,7 +21,7 @@ schemas = {
 
     "asset_item_schema": [ 
     {
-        "key" : "asset",
+        "key" : "asset_name",
         "title": "Name",
         "default": "No name"
     },
@@ -37,6 +38,14 @@ schemas = {
 
 ]
 }
+
+class SyncTransformers():
+    def __init__(self) -> None:
+        pass
+
+    def sync_item(self, dict_value):
+        return dict_value.get("depotFile").split('/')[-1]
+
 
 class Item(object):
     def __init__(self, data, parent=None):
@@ -82,7 +91,7 @@ class Item(object):
 
 
 class ItemSchema(Item):
-    def __init__(self, data, schema=None, parent=None, primary=False, **kwargs):
+    def __init__(self, data, schema=None, parent=None, primary=False, transformers=None, **kwargs):
         self._cached_data = []
         #self._col_map = [i.get('key') for i in schema]
         self.primary = primary
@@ -91,6 +100,9 @@ class ItemSchema(Item):
         self._serial_data = []
         
         self.schemas = schemas
+
+        self.transformers = transformers
+        self.transformers = SyncTransformers()
 
         if schema:
             if schema in self.schemas.keys():
@@ -118,8 +130,14 @@ class ItemSchema(Item):
             
             val = "n/a"
             # cerberus match against schema
+
             if self.data_in.get(item['key']):
                 val = self.data_in[item['key']]
+                if item.get("transform"):
+                    if self.transformers:
+                        if item['transform'] in self.transformers.__dict__():
+                            val = getattr(self.transformers, item['transform'])(val)
+
             elif item.get('default'):
                 val = item['default']
             self._serial_data.append(val)
