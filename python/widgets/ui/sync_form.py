@@ -17,6 +17,8 @@ class Ui_SyncForm(Ui_Generic):
 
         super().__init__(parent, **kwargs)
 
+        self.sync_app.setup()
+
 
     def make_components(self):
         self.schema = ItemSchema
@@ -59,19 +61,19 @@ class Ui_SyncForm(Ui_Generic):
 
         # self.master_layout = QtGui.QVBoxLayout()
         # self.setLayout(self.master_layout)
-        """
-        self.model = MultiModel(self.sync_app.data)
+        
+
         # self.proxy_model = SortFilterModel(excludes=['TRex'], parent=self)
         # self.proxy_model.setSourceModel(self.model)
         # self.proxy_model.setDynamicSortFilter(True)
 
 
         self.tree_view =QtGui.QTreeView()
-        self.tree_view.setModel(self.model)
+        # self.tree_view.setModel(self.model)
         # self.tree_view.setItemDelegateForColumn(1, MultiDelegate(self.tree_view))
         # self.tree_view.setItemDelegateForColumn(2, DoubleSpinBoxDelegate(self.tree_view))
-        self.tree_view.expandAll()
-        """
+        
+        
         # self.list_view = QListView()
         # self.list_view.setModel(self.model)
 
@@ -83,6 +85,17 @@ class Ui_SyncForm(Ui_Generic):
         # self.master_layout.addWidget(self.list_view)
         # self.master_layout.addWidget(self.table_view)
 
+    def reload_view(self):
+        try:
+            self.logger.debug('attempting to make a model...')
+            self.model = MultiModel(self.sync_app.prepared_data)
+            self.tree_view.setModel(self.model)
+            self.tree_view.expandAll()
+            self.logger.info("Reloaded the view")
+        except Exception as e:
+            import traceback
+            self.logger.error(e)
+            raise
 
 
     def setup_ui(self):
@@ -120,7 +133,7 @@ class Ui_SyncForm(Ui_Generic):
 
         # arrange widgets in layout
         self._main_layout.addLayout(self._menu_layout)
-        #self._main_layout.addWidget( self.tree_view)
+        self._main_layout.addWidget( self.tree_view)
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
 
