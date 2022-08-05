@@ -16,30 +16,16 @@ import random
 import time
 import sys
 
-
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 from functools import partial
 
 from .sync_workers import SyncWorker, AssetInfoGatherWorker
-from .utils import PrefFile, open_browser
+from .utils import PrefFile, open_browser, partialclass
+from .ui.sync_form import Ui_SyncForm
 
 # file base for accessing Qt resources outside of resource scope
 basepath = os.path.dirname(os.path.abspath(__file__))
-
-
-from .ui.sync_form import Ui_SyncForm
-from .utils import partialclass
-
-
-# def import_qt():
-#     try:
-#         import sgtk
-#         from sgtk.platform.qt import QtCore, QtGui
-#     except Exception as e:
-#         import sys
-#         sys.path.append("""C:/Users/cam_admin/AppData/Local/Programs/Python/python37-32/lib/site-packages""".replace("\\", "/"))
-#         from PySide2 import QtCore, QtGui
-
-# import_qt()
 
 class SyncApp():
 
@@ -50,6 +36,7 @@ class SyncApp():
     progress = 0
     
     def __init__(self, parent_sgtk_app, entities_to_sync, specific_files,  parent=None, data=None):
+        
         """
         Construction of sync UI
         """
@@ -59,35 +46,39 @@ class SyncApp():
             "asset_info": AssetInfoGatherWorker,
             "sync" : SyncWorker
         }
-        self.data = [
-            {'asset': "Ankylo",
-            "sync_filename" : "Ankylo_concept_v001.psd",
-            "sync_path": "/shows/test/Ankylo_concept_v001.psd",
-            "status" : "Peaceful",
-            "version": 1
-            },
-            {'asset': "Ankylo2",
-            "sync_filename" : "Ankylo2_concept_v001.psd",
-            "sync_path": None,
-            "status" : "Peaceful",
-            "version": 1
-            },
-            {'asset': "TRex",
-            "sync_filename" : "Trex_texture_v003.psd",
-            "sync_path": None,
-            "status" : "Mad",
-            "version": 2
-            }
+        # self.data = [
+        #     {'asset': "Ankylo",
+        #     "sync_filename" : "Ankylo_concept_v001.psd",
+        #     "sync_path": "/shows/test/Ankylo_concept_v001.psd",
+        #     "status" : "Peaceful",
+        #     "version": 1
+        #     },
+        #     {'asset': "Ankylo2",
+        #     "sync_filename" : "Ankylo2_concept_v001.psd",
+        #     "sync_path": None,
+        #     "status" : "Peaceful",
+        #     "version": 1
+        #     },
+        #     {'asset': "TRex",
+        #     "sync_filename" : "Trex_texture_v003.psd",
+        #     "sync_path": None,
+        #     "status" : "Mad",
+        #     "version": 2
+        #     }
         
-        ]
+        # ]
 
         
-        # self.parent = parent
+        self.entities_to_sync = entities_to_sync
+        self.data = self.entities_to_sync
+
 
         self.parent_sgtk_app = parent_sgtk_app
-        # self.entities_to_sync = entities_to_sync
-        # self.specific_files= specific_files
-        # self.scan()
+
+        
+    @property
+    def logger(self):
+        return self.parent_sgtk_app.logger
 
     @property
     def ui(self):
@@ -118,25 +109,25 @@ class SyncApp():
         ui.render_to_image()
         app.exec_()
 
-    def log_error(self, e):
-        self.fw.log_error(str(e))
-        self.fw.log_error(traceback.format_exc())
+    # def log_error(self, e):
+    #     self.fw.log_error(str(e))
+    #     self.fw.log_error(traceback.format_exc())
 
-    def scan(self):
-        # old storage we likely dont need. Lets find out. 
-        self._asset_item_info = {}
-        self._asset_items = {}
-        self._sync_items = {}
-        self._step_options = []
+    # def scan(self):
+    #     # old storage we likely dont need. Lets find out. 
+    #     self._asset_item_info = {}
+    #     self._asset_items = {}
+    #     self._sync_items = {}
+    #     self._step_options = []
 
-        self._filtered_away = []
+    #     self._filtered_away = []
 
-        self.use_filters = ['Step', 'Type', 'Ext']
-        self.filter_sizes = {
-            "Step" : 80,
-            "Type" : 130,
-            "Ext" : 50
-        }
+    #     self.use_filters = ['Step', 'Type', 'Ext']
+    #     self.filter_sizes = {
+    #         "Step" : 80,
+    #         "Type" : 130,
+    #         "Ext" : 50
+    #     }
 
         # init preferences
         # self.prefs = PrefFile()
@@ -153,8 +144,8 @@ class SyncApp():
         # self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
 
         # creat UI elements and arrange them
-        self.make_widgets()
-        self.setup_ui()
+        # self.make_widgets()
+        # self.setup_ui()
 
         # # add assets and what we want to sync into the view
         # if self.entities_to_sync:
@@ -189,318 +180,16 @@ class SyncApp():
         return self._p4
         
 
-    # def make_widgets(self):
-    #     """
-    #     Makes UI widgets for the main form
-    #     """
-
-    #     # bring in global SG search widget when there arent Assets given already to the app
-    #     # search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "global_search_widget")
-    #     # self.search_line_edit = search_widget.GlobalSearchWidget(self)    
-
-    #     self._do = QtGui.QPushButton("Sync")
-    #     self._asset_tree = QtGui.QTreeWidget()
-
-    #     self._asset_tree.clear()
-    #     self._progress_bar = QtGui.QProgressBar()
-    #     self._list = QtGui.QListWidget()
-    #     self._line_edit = QtGui.QLineEdit()
-    #     self._line_edit.setText(" ")
-
-    #     self._step_filter_label = QtGui.QLabel("Show/Sync Steps:")
-    #     self._hide_syncd = QtGui.QCheckBox()
-
-    #     self._force_sync = QtGui.QCheckBox()
-    #     self._force_sync.setText("Force Sync")
-
-    #     self._rescan = QtGui.QPushButton("Rescan")
-     
-
-    # def setup_ui(self):
-    #     """
-    #     Lays out and customizes widgets for the main form
-    #     """       
-    #     # set main layout
-    #     self._main_layout = QtGui.QVBoxLayout()
-    #     self._menu_layout = QtGui.QHBoxLayout()
-        
-    #     self.setLayout(self._main_layout)
-
-    #     # hide progress until we run the sync
-    #     self._progress_bar.setVisible(False)
-
-    #     # asset tree setup
-    #     self.tree_header = ["Asset Name", "Status", "Detail"]
-    #     for h in self.tree_header:
-    #         setattr(self, h.replace(' ', "_").upper(), self.tree_header.index(h))
-
-        
-    #     # set main tree style        
-    #     self._asset_tree.setAnimated(True)
-    #     self._asset_tree_header = QtGui.QTreeWidgetItem(self.tree_header)
-    #     self._asset_tree.setHeaderItem(self._asset_tree_header)  
-    #     self._asset_tree.setWordWrap(True)
-    #     self._asset_tree.setColumnWidth(0, 150)
-    #     self._asset_tree.setColumnWidth(1, 160)
-
-    #     self._hide_syncd.setText("Hide if nothing to sync")
-    #     self._hide_syncd.stateChanged.connect(self.save_ui_state)
-    #     self._hide_syncd.stateChanged.connect(self.filter_syncd_items )
-    #     self._hide_syncd.setChecked(self.prefs.data.get('hide_syncd'))
-
-    #     self._force_sync.stateChanged.connect(self.save_ui_state)
-    #     self._force_sync.stateChanged.connect(self.rescan)
-    #     self._force_sync.setChecked(self.prefs.data.get('force_sync'))
-
-
-    #     self._menu_layout.addWidget(self._hide_syncd)
-    #     self._menu_layout.addStretch()
-    #     #self._menu_layout.addWidget(self._step_filter_label)
-
-    #     self.sync_layout = QtGui.QHBoxLayout()
-    #     self.sync_layout.addWidget(self._rescan,  3)
-    #     self.sync_layout.addWidget(self._do,  10)
-    #     self.sync_layout.addWidget(self._force_sync, 1)
-
-    #     # arrange widgets in layout
-    #     self._main_layout.addLayout(self._menu_layout)
-    #     self._main_layout.addWidget( self._asset_tree)
-    #     self._main_layout.addWidget(self._progress_bar)
-    #     self._main_layout.addLayout(self.sync_layout)
-
-    #     # css
-    #     self.setStyleSheet("""
-    #         QTreeWidget::item { padding: 5px; }
-    #         QAction  { padding: 10px; }
-    #     """ )
-        
-    #     # signal connections
-    #     self._do.clicked.connect(self.start_sync)
-
-    #     for f in self.use_filters:
-    #         self.button_menu_factory(f)
-        
-    #     # connect right_click_menu to tree
-    #     self._asset_tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-    #     self._asset_tree.customContextMenuRequested.connect(self.open_context_menu)
-
-    #     self._rescan.clicked.connect(self.rescan)
-    #     self.set_ui_interactive(False)
-
-    #     if self.specific_files:
-    #         self._rescan.setVisible(False)
-    #         self._force_sync.setVisible(False)
-
-
-    # def button_menu_factory(self, name= None ):
-    #     # sets up a filter for use in 
-    #     width = 80
-    #     short_name = name.lower().replace(" ", "")
-    #     if name in self.filter_sizes.keys():
-    #         width = self.filter_sizes.get(name)
-
-    #     setattr(self, "_{}_filter".format(short_name), QtGui.QToolButton())
-    #     setattr(self, "_{}_menu".format(short_name), QtGui.QMenu())
-    #     setattr(self, "_{}_actions".format(short_name), {})
-
-    #     btn = getattr(self, "_{}_filter".format(short_name))
-    #     menu = getattr(self, "_{}_menu".format(short_name))
-       
-    #     btn.setFixedWidth(width) 
-    #     btn.setText(name)
-    #     btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-    #     btn.setMenu(menu)
-    #     btn.setPopupMode(QtGui.QToolButton.InstantPopup)
-
-    #     menu.setFixedWidth(width)
-    #     menu.setTearOffEnabled(True)
-
-    #     self._menu_layout.addWidget(btn)
-
-
-    def resizeEvent( self, event ):
-    #     """
-    #     Keep track of window_size
-    #     """
-    #     QtGui.QWidget.resizeEvent( self, event )
-         self.save_ui_state()
+    
 
 
 
-
-
-    def open_context_menu(self, point):
-        # Infos about the node selected.
-        try:
-            os_filebrowser_map = {
-                "win32" : "Explorer",
-                "darwin" : "Finder"
-            }
-            os_filebrowser = "file browser"
-            if sys.platform in os_filebrowser_map.keys():
-                os_filebrowser = os_filebrowser_map[sys.platform]
-            
-            tree_item = self._asset_tree.itemAt(point)
-            path_to_open = os.path.dirname(tree_item.data(2, QtCore.Qt.UserRole))
-        
-
-            menu = QtGui.QMenu()
-            action = menu.addAction("Open path in {}".format(os_filebrowser), 
-                                    partial(open_browser, path_to_open))
-                
-            menu.exec_(self._asset_tree.mapToGlobal(point))
-
-        except Exception as e:
-            self.log_error(e)
-
-
-
-
-    # def save_ui_state(self, state_str=None):
-    #     """
-    #     Sync UI state and prefs locally to use for persistent UI features
-    #     """
-    #     self.fw.log_info("Saving state for UI: {}".format(state_str))
-    #     try:
-    #         data = self.prefs.read()
-    #         data["hide_syncd"] = self._hide_syncd.isChecked()
-    #         data['window_size'] = [self.width(), self.height()]
-    #         data["force_sync"] = self._force_sync.isChecked()
-
-    #         # save step filters~
-    #         for f in self.use_filters:
-    #             f = f.lower()
-    #             filter_name = "{}_filters".format(f)
-    #             filter_data = {}
-
-    #             # use existing filter data if exists
-    #             if data.get(filter_name):
-    #                 filter_data = data.get(filter_name)
-    #             # overwrite it with  our scan of presently checked items
-    #             if hasattr(self, "_{}_actions".format(f)):
-    #                 actions = getattr(self, "_{}_actions".format(f))
-    #                 if actions:
-    #                     for k,v in actions.items():
-    #                         filter_data[k] = v.isChecked()
-
-    #             data[filter_name] = filter_data
-            
-    #             self.prefs.write(data)
-    #     except Exception as e:
-    #         self.log_error(e)
-
-    def filter_syncd_items(self):
-        """
-        Filter top-level items if theyre already sync'd
-        """
-        try:
-            
-            hide_syncd_checkstate = self._hide_syncd.isChecked()
-            hid = 0
-            for asset_name, asset_dict in self._asset_items.items():
-                asset_status = asset_dict.get('status')
-                if asset_status == "Syncd":
-
-                    tree_item = asset_dict.get("tree_widget")
-                    tree_item.setHidden(hide_syncd_checkstate)
-                    if hide_syncd_checkstate is True:
-                        hid += 1
-            checkbox_text = "Hide if nothing to sync"
-            if hid:
-                checkbox_text += " ({} hidden)".format(hid)
-            self._hide_syncd.setText(checkbox_text)
-
-            
-                
-        except Exception as e:
-            self.log_error(e)
 
     
-    def filter_items(self):
-        """
-        Filter sync items away based on the step check-boxes
-        """
-        try:
-            self._filtered_away = {}
-            self._filtered_away['paths'] = []
-            self.prefs.read()
 
-            for f in self.use_filters:
-                f = f.lower()
-                self._filtered_away[f] = []
-                filters = self.prefs.data.get('{}_filters'.format(f))
 
-                for asset_name, asset_dict in self._asset_items.items():
 
-                    if asset_dict.get('status') != "Syncd":
-                    
-                        for sync_path, sync_widget in asset_dict['child_widgets'].items():
-
-                            if sync_path not in self._filtered_away['paths']:
-                                filter_term = asset_dict['child_{}s'.format(f)].get(sync_path)
-                                if filter_term:
-
-                                    if filter_term in filters.keys():
-                
-
-                                        #self.fw.log_info("setting sync widget {} to {} : {}".format(sync_path, (not filters.get(filter_term)), filter_term))
-                                        sync_widget.setHidden(not filters.get(filter_term))
-
-                                        # keep track for user of what isnt being shown to them
-                                        if (not filters.get(filter_term)) is True:
-                                            self._filtered_away[f].append(sync_path)
-                                            self._filtered_away['paths'].append(sync_path)
-
-                        self.update_sync_counter(asset_name) 
-
-                # indicate to user that items being filtered from view
-                if len(self._filtered_away[f]) > 0:
-                    getattr(self, "_{}_filter".format(f)).setIcon(self.make_icon("filter"))
-                else:
-                    getattr(self, "_{}_filter".format(f)).setIcon(QtGui.QIcon())     
-
-        except Exception as e:
-            self.log_error(e)
-
-    # def set_ui_interactive(self, state):
-    #     """
-    #     Common utility to lock the UI while info-gathering or syncing is occuring
-    #     """
-    #     # toggle the installed filters
-    #     for f in self.use_filters:
-    #         f = f.lower()
-    #         getattr(self, "_{}_filter".format(f)).setEnabled(state)
-
-    #     self._hide_syncd.setEnabled(state)
-    #     self._do.setEnabled(state)  
-    #     self._force_sync.setEnabled(state)
-
-    def update_sync_counter(self, asset_name):
-        """
-        TODO: add to main model logic
-        Update the top-level count of how many items there are to sync for an asset upon filters being applied
-        """
-        asset_dict = self._asset_items.get(asset_name)
-        tree_widget = asset_dict.get("tree_widget")
-        unfiltered_sync_count = len(asset_dict.get('child_widgets').keys())
-        items_to_sync = [i for i,w in asset_dict.get('child_widgets').items() if not w.isHidden()]
-
-        count_to_sync = len(items_to_sync)
-
-        parent_asset_status = "{} to sync"
-        plurality = ""
-
-        filtered = unfiltered_sync_count-count_to_sync
-
-        status = parent_asset_status.format(count_to_sync)
-        if count_to_sync > 0:
-            # set asset parent's status regarding count-left-to-sync
-            tree_widget.setText(1, status)
-            tree_widget.setIcon(1, self.make_icon('load'))
-        if filtered:
-            tree_widget.setText(1, "{} ({} filtered)".format(status, filtered))
-            tree_widget.setIcon(1, self.make_icon('validate'))
-
+   
 
     def update_available_filters(self, filter_info):
         """
@@ -538,181 +227,85 @@ class SyncApp():
         except Exception as e:
             self.log_error(e)
 
-    
-    def make_top_level_tree_item(self, asset_name=None, status=None, details=None, icon=None, root_path=None):
-        """
-        Creates QTreeWidgetItem to display asset information
-        """
-        tree_item = QtGui.QTreeWidgetItem(self._asset_tree)
+  
 
-        # if user has chosen to not see these 
-        if self._hide_syncd.isChecked() and status == "Syncd":
-            tree_item.setHidden(True)
+   
+    def update_view(self):
+        #TODO do the actually update of ui here
+        pass
 
-        tree_item.setText(self.ASSET_NAME, asset_name)
-        tree_item.setText(self.STATUS, status)
-        tree_item.setText(self.DETAIL, details)
-        tree_item.setIcon(self.STATUS, self.make_icon(icon))
+    def setup(self):
+       
+        self.threadpool = QtCore.QThreadPool.globalInstance()
+        self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
+        workers = self.initialize_data()
+        self.logger.info(f'App build completed with workers: [{workers}]')
 
-        if root_path:
-            tree_item.setData(2, QtCore.Qt.UserRole, root_path)
+    def report_worker_info(self, item_dict):
+        self.logger.info("THIS CAME FROM THE EVENT" + str(item_dict))
 
-        self._asset_tree.addTopLevelItem(tree_item)
-
-        
-        return tree_item
-
-
-    def make_sync_tree_item(self, sync_item_info):
-        """
-        Deprecate:
-        Creates child QTreeWidgetItem under asset item to display filename and status of the sync
-        """
-        #self.fw.log_info('trying to make child item for {}'.format(sync_item_info))
-        try:
-            asset_name = sync_item_info.get("asset_name")
-            item_found = sync_item_info.get("item_found")
-            status = sync_item_info.get('status')
-            step = sync_item_info.get('step')
-            file_type = sync_item_info.get('type')
-
-            tree_item = self._asset_items[asset_name].get("tree_widget")
-
-            child_tree_item = QtGui.QTreeWidgetItem(tree_item)
-
-            asset_file_path = item_found.get('clientFile') 
-            asset_file_name = os.path.basename(item_found.get('clientFile'))
-
-
-            filtered = None
-
-            for f in self.use_filters:
-                f = f.lower()
-                if sync_item_info.get(f):
-                    filter_term = sync_item_info.get(f)
-                    filters = self.prefs.data.get('{}_filters'.format(f))
-                    if filter_term in filters.keys():
-                        if not filtered:
-                            child_tree_item.setHidden(not filters.get(filter_term))
-                            filtered = True
-                            self.update_sync_counter(asset_name)
-                    child_filter_term = self._asset_items[asset_name].get("child_{}s".format(f))  
-                    child_filter_term[asset_file_path] = filter_term
-
-
-            child_tree_item.setText(self.ASSET_NAME, asset_file_name) #If it is not clientFile specifically it seems like the name is within that info at least the correct wording is probably in clientFile
-            child_tree_item.setText(self.STATUS, status.title())
-            child_tree_item.setText(self.DETAIL, asset_file_path) #after testing it works as intended but we need to link it to the actual names the correct wording is probably in depotFile
-            child_tree_item.setIcon(self.STATUS, self.make_icon("load"))
-            child_tree_item.setData(2, QtCore.Qt.UserRole, asset_file_path)
-
-            child_tree_item.status = status
-            
-            child_widgets = self._asset_items[asset_name].get("child_widgets")
-            child_widgets[ asset_file_path ] = child_tree_item
-
-            #self.filter_items
-            
-        except Exception as e:
-            self.log_error(e)
-        
-
-    def asset_info_handler(self, info_processed_dict):
-        """
-        Main handler for asset information. 
-        """
-        name = info_processed_dict.get("asset_name")
-        if name not in  self._asset_items.keys():
-
-            tree_widget = self.make_top_level_tree_item(asset_name=info_processed_dict.get("asset_name"),
-                                        status= info_processed_dict.get("status"),
-                                        details= info_processed_dict.get("details"),
-                                        icon = info_processed_dict.get("icon"),
-                                        root_path = info_processed_dict.get("root_path")                         
-            )
-            
-            asset_UI_mapping = {}
-            asset_UI_mapping['tree_widget']= tree_widget
-            asset_UI_mapping['asset_info']= info_processed_dict.get("asset_item")
-            asset_UI_mapping['status'] = info_processed_dict.get("status")
-            asset_UI_mapping['child_widgets'] = {}
-
-            for f in self.use_filters:
-                asset_UI_mapping['child_{}s'.format(f.lower())] = {}
-
-            self._asset_items[info_processed_dict.get("asset_name")] = asset_UI_mapping
-            
-
-    def set_progress_message(self, message=None, percentf=" %p%"):
-        """
-        Set the message to see in the progress bar
-        """
-        self._progress_bar.setVisible(True)
-        self._progress_bar.setFormat("{}{}".format(message, percentf))
-
-
-    def iterate_progress(self, message=None):
-        """
-        Iterate global progress counter and update the progressbar widget
-        Detect if progress is globally complete and handle hiding the progress widget
-        """
-        self._progress_bar.setVisible(True)
-        self.progress += 1
-        
-        self._progress_bar.setValue(self.progress)
-        self.set_progress_message(message)
-        if self._progress_bar.value() == self._progress_bar.maximum():
-            self.set_progress_message("{} complete".format(message))
-            self._progress_bar.setVisible(False)
-
-            self.set_ui_interactive(True)
-
-
-            self.filter_items()
-            self.filter_syncd_items()
-
-
-    def populate_assets(self):
+    def initialize_data(self):
         """
         Iterate through tk-multi-perforce delivered list of asset information, 
         Utilize a global threadpool to process workers to ask P4 server for what 
         there is to sync for these. 
         """
         try:
-            self.asset_item_registry = {}  
+             
+            # self.asset_item_registry = {}  
 
-            self.sync_items = {}
-            self.sync_order = []
-            self.progress = 0
+            # self.sync_items = {}
+            # self.sync_order = []
 
-            self.progress_maximum = len(self.entities_to_sync)
-            self._progress_bar.setRange(0, self.progress_maximum)
-            self._progress_bar.setValue(0)
-            self.set_progress_message("Requesting asset information for SG selection...")
+
+
+
+            # self.ui.progress = 0
+
+            # self.ui.progress_maximum = len(self.data)
+            # self.ui._progress_bar.setRange(0, self.ui.progress_maximum)
+            # self.ui._progress_bar.setValue(0)
+            
+            
+            # self.ui.set_progress_message("Requesting asset information for SG selection...")
 
             # self.fw.log_info(len(self.entities_to_sync))
             # iterate all parent assets
-            for entity_to_sync in self.entities_to_sync:
 
-                asset_info_gather_worker = AssetInfoGatherWorker(app=self.app,
+            workers = []
+            for entity_to_sync in self.data:
+
+                asset_info_gather_worker = AssetInfoGatherWorker(app=self.parent_sgtk_app,
                                                                 entity=entity_to_sync,
                                                                 framework=self.fw)
 
-                if self._force_sync.isChecked():
-                    asset_info_gather_worker.force_sync = True
+                # if self.ui._force_sync.isChecked():
+                #     asset_info_gather_worker.force_sync = True
 
-                asset_info_gather_worker.info_gathered.connect( self.asset_info_handler )
-                asset_info_gather_worker.progress.connect( self.iterate_progress )
-                asset_info_gather_worker.item_found_to_sync.connect(self.make_sync_tree_item)
-                asset_info_gather_worker.status_update.connect(self.set_progress_message)
-                asset_info_gather_worker.includes.connect(self.update_available_filters)
+
+
+                # TODO: reconnect to working methods
+                # asset_info_gather_worker.info_gathered.connect( self.asset_info_handler )
+
+                # implement in Ui_form
+                # TODO: reimplement the below
+                # asset_info_gather_worker.progress.connect( self.iterate_progress )
+                # asset_info_gather_worker.status_update.connect(self.set_progress_message)
+
+                asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
+                # asset_info_gather_worker.status_update.connect(self.set_progress_message)
+                # asset_info_gather_worker.includes.connect(self.update_available_filters)
 
                 # if hasattr(self, 'child_asset_ids'):
                 #     if self.child_asset_ids:
                 #         if entity_to_sync.get('id') in self.child_asset_ids:
                 #             asset_info_gather_worker.child = True
-                asset_info_gather_worker.run()
-                # self.threadpool.start(asset_info_gather_worker)
+                # asset_info_gather_worker.run()
+                
+                self.threadpool.start(asset_info_gather_worker)
+               
+
+
         except Exception as e:
             self.log_error(e)
 
