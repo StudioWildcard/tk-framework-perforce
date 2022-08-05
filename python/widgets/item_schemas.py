@@ -1,3 +1,6 @@
+import sgtk
+logger = sgtk.platform.get_logger(__name__)
+
 schemas = {
     "sync_item_schema": [
     {
@@ -8,13 +11,13 @@ schemas = {
         "transform" : "sync_item"
     },
     {
-        "key" : "sync_path",
+        "key" : "status",
         "title": "Descr",
         "default": "No Description"
     },
     {
-        "key" : "version",
-        "title": "Version",
+        "key" : "ext",
+        "title": "Extension",
         "default": "No Description"
     },
 ],
@@ -45,6 +48,8 @@ class SyncTransformers():
 
     def sync_item(self, dict_value):
         return dict_value.get("depotFile").split('/')[-1]
+
+
 
 
 class Item(object):
@@ -91,7 +96,7 @@ class Item(object):
 
 
 class ItemSchema(Item):
-    def __init__(self, data, schema=None, parent=None, primary=False, transformers=None, **kwargs):
+    def __init__(self, data=None, schema=None, parent=None, primary=False, transformers=None, **kwargs):
         self._cached_data = []
         #self._col_map = [i.get('key') for i in schema]
         self.primary = primary
@@ -109,6 +114,9 @@ class ItemSchema(Item):
                 self.column_schema = self.schemas[schema]
         else:
             raise Exception("Schema-driven items require a schema to reference.")
+
+        if not data:
+            data = {"name" : "None"}
 
         super().__init__(data=data, parent=parent, **kwargs)
 
@@ -130,12 +138,12 @@ class ItemSchema(Item):
             
             val = "n/a"
             # cerberus match against schema
-
+            
             if self.data_in.get(item['key']):
                 val = self.data_in[item['key']]
                 if item.get("transform"):
                     if self.transformers:
-                        if item['transform'] in self.transformers.__dict__():
+                        if hasattr(self.transformers, item['transform']):
                             val = getattr(self.transformers, item['transform'])(val)
 
             elif item.get('default'):
