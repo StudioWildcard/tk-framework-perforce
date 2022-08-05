@@ -3,6 +3,7 @@ from .base_ui import Ui_Generic
 from sgtk.platform.qt import QtCore, QtGui
 from ..item_schemas import ItemSchema
 from ..base_model import MultiModel
+from ..filter_models import SortFilterModel
 
 class Ui_SyncForm(Ui_Generic):
   
@@ -12,17 +13,29 @@ class Ui_SyncForm(Ui_Generic):
         """    
         self.sync_app = app
         self.sg = self.sync_app.fw
-
+        self.sync_app.ui = self 
 
 
         super().__init__(parent, **kwargs)
-
+        
         self.sync_app.setup()
 
 
     def make_components(self):
+
+        # the utility that defines how we hand raw data to the model
         self.schema = ItemSchema
 
+        # the utility that routes the data into a table/view
+        self.model = MultiModel()
+        
+        # the filtering/sorting utility that uses our existing model to modify
+        self.proxy_model = SortFilterModel(excludes=['aaaaaaaaaaaa'], parent=self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.proxy_model = self.model
+
+        # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
         self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
 
@@ -31,14 +44,8 @@ class Ui_SyncForm(Ui_Generic):
         """
         Makes UI widgets for the main form
         """ 
-
-
-
         self.use_filters = ["dog", "cat", "gecko"]
-
-        # bring in global SG search widget when there arent Assets given already to the app
-        # search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "global_search_widget")
-        # self.search_line_edit = search_widget.GlobalSearchWidget(self)    
+ 
 
         self._do = QtGui.QPushButton("Sync")
         self._asset_tree = QtGui.QTreeWidget()
@@ -63,39 +70,31 @@ class Ui_SyncForm(Ui_Generic):
         # self.setLayout(self.master_layout)
         
 
-        # self.proxy_model = SortFilterModel(excludes=['TRex'], parent=self)
-        # self.proxy_model.setSourceModel(self.model)
-        # self.proxy_model.setDynamicSortFilter(True)
 
 
         self.tree_view =QtGui.QTreeView()
-        # self.tree_view.setModel(self.model)
-        # self.tree_view.setItemDelegateForColumn(1, MultiDelegate(self.tree_view))
-        # self.tree_view.setItemDelegateForColumn(2, DoubleSpinBoxDelegate(self.tree_view))
         
-        
-        # self.list_view = QListView()
-        # self.list_view.setModel(self.model)
+        self.view_stack = QtGui.QStackedWidget()
+        self.b = QtGui.QLabel("Gathering contextual request from Perforce Servers for {} items...".format(str(len(self.sync_app.input_data))))
 
-        # self.table_view = QTableView()
-        # self.table_view.setModel(self.model)
-
-
-        # self.master_layout.addWidget(self.tree_view)
-        # self.master_layout.addWidget(self.list_view)
-        # self.master_layout.addWidget(self.table_view)
 
     def reload_view(self):
+        
         try:
-            self.logger.debug('attempting to make a model...')
-            self.model = MultiModel(self.sync_app.prepared_data)
-            self.tree_view.setModel(self.model)
+            self.tree_view.update()
             self.tree_view.expandAll()
-            self.logger.info("Reloaded the view")
+            self.tree_view.setAnimated(True)
         except Exception as e:
             import traceback
             self.logger.error(e)
             raise
+
+
+    def setup_style(self):
+        self.setStyleSheet("""
+            QTreeView::item { padding: 5px; }
+            QAction  { padding: 10px; }
+        """ )
 
 
     def setup_ui(self):
@@ -110,6 +109,13 @@ class Ui_SyncForm(Ui_Generic):
 
         # hide progress until we run the sync
         self._progress_bar.setVisible(False)
+
+        self.tree_view.setModel(self.proxy_model)
+        self.tree_view.setAnimated(True)
+
+        self.view_stack.addWidget(self.tree_view)
+        self.view_stack.addWidget(self.b)
+        self.view_stack.setCurrentWidget(self.b)
 
         # set main tree style        
         self._asset_tree.setAnimated(True)
@@ -133,7 +139,7 @@ class Ui_SyncForm(Ui_Generic):
 
         # arrange widgets in layout
         self._main_layout.addLayout(self._menu_layout)
-        self._main_layout.addWidget( self.tree_view)
+        self._main_layout.addWidget( self.view_stack)
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
 
@@ -172,6 +178,13 @@ class Ui_SyncForm(Ui_Generic):
         menu.setTearOffEnabled(True)
 
         self._menu_layout.addWidget(btn)
+
+
+    def set_ready(self, state):
+        if state:
+            self.view_stack.setCurrentWidget(self.tree_view)
+        else:
+            self.view_stack.setCurrentWidget(self.b)
 
 
     def iterate_progress(self, message=None):
