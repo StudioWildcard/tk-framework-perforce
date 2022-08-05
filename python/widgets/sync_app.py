@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
+from inspect import trace
 import os
 import traceback
 import pprint
@@ -17,6 +18,7 @@ import time
 import sys
 
 import sgtk
+from sgtk import TankError
 from sgtk.platform.qt import QtCore, QtGui
 from functools import partial
 
@@ -70,7 +72,8 @@ class SyncApp():
 
         
         self.entities_to_sync = entities_to_sync
-        self.data = self.entities_to_sync
+        self.input_data = self.entities_to_sync
+        self.prepared_data = []
 
 
         self.parent_sgtk_app = parent_sgtk_app
@@ -242,6 +245,16 @@ class SyncApp():
         self.logger.info(f'App build completed with workers: [{workers}]')
 
     def report_worker_info(self, item_dict):
+        
+        self.prepared_data.append(item_dict)
+        #self.logger.info(">>> premodel >>> THIS CAME FROM THE EVENT" + str(item_dict))
+        try:
+            a = 3
+            self.ui.reload_view()
+        except Exception as e:
+            import traceback
+            self.logger.error(e)
+            raise sgtk.TankError(e)
         self.logger.info("THIS CAME FROM THE EVENT" + str(item_dict))
 
     def initialize_data(self):
@@ -273,7 +286,7 @@ class SyncApp():
             # iterate all parent assets
 
             workers = []
-            for entity_to_sync in self.data:
+            for entity_to_sync in self.input_data:
 
                 asset_info_gather_worker = AssetInfoGatherWorker(app=self.parent_sgtk_app,
                                                                 entity=entity_to_sync,
@@ -307,7 +320,7 @@ class SyncApp():
 
 
         except Exception as e:
-            self.log_error(e)
+            self.logger.error(e)
 
 
     def make_icon(self, name):
