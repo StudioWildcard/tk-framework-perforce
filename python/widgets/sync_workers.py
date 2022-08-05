@@ -92,7 +92,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         super(AssetInfoGatherWorker, self).__init__()
 
         self.app = app
-        self.entity = entity
+        self.entities = entity
 
         self.force_sync = False
 
@@ -211,91 +211,100 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self.fw.log_info(self._items_to_sync)
 
     @QtCore.Slot()
+    def run_old(self):
+        self.item_found_to_sync.emit({"message": "works"})
+
+    @QtCore.Slot()
     def run(self):
 
         """
         Checks if there are errors in the item, signals that, or if not, gets info regarding what there is to sync. 
         """
-        try:
-            self.template_resolver = TemplateResolver(app=self.app,
-                                                entity=self.entity )
+        # time.sleep(random.randint(0, 12))
+        for i in self.entities:
+            # time.sleep(2)
+            self.entity = i
+            try:
+                self.template_resolver = TemplateResolver(app=self.app,
+                                                    entity=self.entity )
 
-            self.asset_item = self.template_resolver.entity_info
-            progress_status_string = ""
+                self.asset_item = self.template_resolver.entity_info
+                progress_status_string = ""
 
-            self.status_update.emit("Requesting sync information for {}".format(self.asset_name))
+                self.status_update.emit("Requesting sync information for {}".format(self.asset_name))
 
-            #self.fw.log_info(self.asset_item)
-            self.collect_and_map_info()
-            
-            self.info_gathered.emit(self.info_to_signal)
-            if self.status == 'Syncd':
-                progress_status_string = " (Nothing to sync. Skipping...)"
-            
-        
-            if self.status != "Error":
+                #self.fw.log_info(self.asset_item)
+                self.collect_and_map_info()
                 
-                if self._items_to_sync:
-                    # make lookup list for SG api call for published files to correlate. 
-                    depot_files = [i.get('depotFile') for i in self._items_to_sync]
-                    find_fields = [
-                        "sg_p4_change_number"
-                        "code", 
-                        "entity.Asset.code"
-                        "sg_p4_depo_path",
-                        "task.Task.step.Step.code",
-                        "published_file_type.PublishedFileType.code",
-                        ]
-                    
-                    sg_filter = ["sg_p4_depo_path", "in", depot_files]
-                    if self.entity.get('type') in ["PublishedFile"]:
-                        sg_filter = ["id", "in", self.entity.get('id')]
-                    published_files = self.app.shotgun.find('PublishedFile', [sg_filter], find_fields )
-                    published_file_by_depot_file = {i.get('sg_p4_depo_path'):i for i in published_files}
-                    # self.fw.log_info(published_file_by_depot_file)
-                    for item in self._items_to_sync:
-
-                        published_file = published_file_by_depot_file.get(item.get('depotFile'))
-                        step = None
-
-                        file_type = None
-                        if published_file:
-                            #self.fw.log_info(published_file_by_depot_file)
-
-                            step = published_file.get("task.Task.step.Step.code")
-                            file_type = published_file.get("published_file_type.PublishedFileType.code")
-
-
-                            if file_type:
-                                self.includes.emit(("type", file_type))
-
-                        if step:
-                            self.includes.emit(("step", step))
-
-                        ext = None
-                        if "." in item.get("clientFile"):
-                            ext = os.path.basename(item.get("clientFile")).split('.')[-1]
-                            self.includes.emit(("ext", ext.lower()))
-
-                        status = item.get('action')
-                        if self.entity.get('type') in ["PublishedFile"]:
-                            status = "Exact File"
-
-                        self.item_found_to_sync.emit( {
-                            "asset_name" : self.asset_name,
-                            "item_found" : item,
-                            "step" : step,
-                            "type" : file_type,
-                            "ext" : ext.lower(),
-                            "status" : status
-                            }
-                        )
-            else:
-                progress_status_string = " (Encountered error. See details)"
-            self.fw.log_info(progress_status_string)
+                self.info_gathered.emit(self.info_to_signal)
+                if self.status == 'Syncd':
+                    progress_status_string = " (Nothing to sync. Skipping...)"
+                
             
+                if self.status != "Error":
+                    
+                    if self._items_to_sync:
+                        # make lookup list for SG api call for published files to correlate. 
+                        depot_files = [i.get('depotFile') for i in self._items_to_sync]
+                        find_fields = [
+                            "sg_p4_change_number"
+                            "code", 
+                            "entity.Asset.code"
+                            "sg_p4_depo_path",
+                            "task.Task.step.Step.code",
+                            "published_file_type.PublishedFileType.code",
+                            ]
+                        
+                        sg_filter = ["sg_p4_depo_path", "in", depot_files]
+                        if self.entity.get('type') in ["PublishedFile"]:
+                            sg_filter = ["id", "in", self.entity.get('id')]
+                        published_files = self.app.shotgun.find('PublishedFile', [sg_filter], find_fields )
+                        published_file_by_depot_file = {i.get('sg_p4_depo_path'):i for i in published_files}
+                        # self.fw.log_info(published_file_by_depot_file)
+                        for item in self._items_to_sync:
 
-        except Exception as e:
-            self.log_error(e)
+                            published_file = published_file_by_depot_file.get(item.get('depotFile'))
+                            step = None
 
-        self.progress.emit("Gathering info for {} {}".format(self.asset_name, progress_status_string))
+                            file_type = None
+                            if published_file:
+                                #self.fw.log_info(published_file_by_depot_file)
+
+                                step = published_file.get("task.Task.step.Step.code")
+                                file_type = published_file.get("published_file_type.PublishedFileType.code")
+
+
+                                if file_type:
+                                    self.includes.emit(("type", file_type))
+
+                            if step:
+                                self.includes.emit(("step", step))
+
+                            ext = None
+                            if "." in item.get("clientFile"):
+                                ext = os.path.basename(item.get("clientFile")).split('.')[-1]
+                                self.includes.emit(("ext", ext.lower()))
+
+                            status = item.get('action')
+                            if self.entity.get('type') in ["PublishedFile"]:
+                                status = "Exact File"
+                            time.sleep(0.07)
+                            self.item_found_to_sync.emit( {
+                                "asset_name" : self.asset_name,
+                                "item_found" : item,
+                                "step" : step,
+                                "type" : file_type,
+                                "ext" : ext.lower(),
+                                "status" : status
+                                }
+                            )
+                else:
+                    progress_status_string = " (Encountered error. See details)"
+                self.fw.log_info(progress_status_string)
+                
+
+            except Exception as e:
+                self.log_error(e)
+
+            self.progress.emit("Gathering info for {} {}".format(self.asset_name, progress_status_string))
+
