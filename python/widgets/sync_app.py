@@ -238,17 +238,15 @@ class SyncApp():
         pass
 
     def setup(self):
-       
-        self.threadpool = QtCore.QThreadPool.globalInstance()
-        self.threadpool.setMaxThreadCount(min(23, self.threadpool.maxThreadCount()))
-        workers = self.initialize_data()
-        self.logger.info(f'App build completed with workers: [{workers}]')
+        self.initialize_data()
+        self.logger.info(f'App build completed with workers')
 
     def report_worker_info(self, item_dict):
         
         try:
             self.ui.model.add_row(item_dict)
             self.ui.reload_view()
+            self.ui.set_ready(True)
         except Exception as e:
             import traceback
             self.logger.error(e)
@@ -283,37 +281,37 @@ class SyncApp():
             # self.fw.log_info(len(self.entities_to_sync))
             # iterate all parent assets
 
-            workers = []
-            for entity_to_sync in self.input_data:
+            # workers = []
+            # for entity_to_sync in self.input_data:
 
-                asset_info_gather_worker = AssetInfoGatherWorker(app=self.parent_sgtk_app,
-                                                                entity=entity_to_sync,
-                                                                framework=self.fw)
+            asset_info_gather_worker = AssetInfoGatherWorker(app=self.parent_sgtk_app,
+                                                            entity=self.input_data,
+                                                            framework=self.fw)
 
-                # if self.ui._force_sync.isChecked():
-                #     asset_info_gather_worker.force_sync = True
+            # if self.ui._force_sync.isChecked():
+            #     asset_info_gather_worker.force_sync = True
 
 
 
-                # TODO: reconnect to working methods
-                # asset_info_gather_worker.info_gathered.connect( self.asset_info_handler )
+            # TODO: reconnect to working methods
+            # asset_info_gather_worker.info_gathered.connect( self.asset_info_handler )
 
-                # implement in Ui_form
-                # TODO: reimplement the below
-                # asset_info_gather_worker.progress.connect( self.iterate_progress )
-                # asset_info_gather_worker.status_update.connect(self.set_progress_message)
+            # implement in Ui_form
+            # TODO: reimplement the below
+            # asset_info_gather_worker.progress.connect( self.iterate_progress )
+            # asset_info_gather_worker.status_update.connect(self.set_progress_message)
 
-                asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
-                # asset_info_gather_worker.status_update.connect(self.set_progress_message)
-                # asset_info_gather_worker.includes.connect(self.update_available_filters)
+            asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
+            # asset_info_gather_worker.status_update.connect(self.set_progress_message)
+            # asset_info_gather_worker.includes.connect(self.update_available_filters)
 
-                # if hasattr(self, 'child_asset_ids'):
-                #     if self.child_asset_ids:
-                #         if entity_to_sync.get('id') in self.child_asset_ids:
-                #             asset_info_gather_worker.child = True
-                # asset_info_gather_worker.run()
-                
-                self.threadpool.start(asset_info_gather_worker)
+            # if hasattr(self, 'child_asset_ids'):
+            #     if self.child_asset_ids:
+            #         if entity_to_sync.get('id') in self.child_asset_ids:
+            #             asset_info_gather_worker.child = True
+            # asset_info_gather_worker.run()
+            
+            self.ui.threadpool.start(asset_info_gather_worker)
                
 
 
