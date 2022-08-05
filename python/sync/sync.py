@@ -26,7 +26,6 @@ from sgtk.platform.qt import QtGui
 
 from P4 import P4, P4Exception
 
-
 class SgtkP4Error(TankError):
     """
     Specialisation of TankError raised after catching and processing a P4Exception
@@ -119,14 +118,17 @@ class SyncHandler(object):
         try:
             from ..widgets import SyncApp
             sync_app = SyncApp(self.app, self.entities_to_sync, self.specific_files)
-            
+            sync_app.setup()
 
             result, widget = self._fw.engine.show_modal("Perforce Sync ", self._fw, sync_app.ui_class)
+            
             sync_app.ui = widget
+            
+
             sync_app.ui.utils.render_to_image()
 
-            if result == QtGui.QDialog.Accepted:
-                pass
+            # if result == QtGui.QDialog.Accepted:
+            #     pass
 
         except Exception as e:
             self._fw.log_error(e)
