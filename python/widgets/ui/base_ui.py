@@ -1,4 +1,6 @@
 from sgtk.platform.qt import QtCore, QtGui
+# TODO: allow our toolchain to interact with Qt with other abstractors than relying on SG, for example
+
 import traceback
 import logging
 from ..utils import PrefFile, open_browser
@@ -9,10 +11,10 @@ class Ui_Utilities:
     def __init__(self, main_widget):
         self.main_widget = main_widget
         self.prefs = PrefFile()
-        if not self.prefs.data.get('hide_syncd'):
-            self.prefs.data['hide_syncd'] = True
-            self.prefs.write()
-            self.prefs.read()
+        # if not self.prefs.data.get('hide_syncd'):
+        #     self.prefs.data['hide_syncd'] = True
+        #     self.prefs.write()
+        #     self.prefs.read()
 
     def render_to_image(self, image_file_path="my_screenshot.png"):
 
@@ -30,6 +32,8 @@ class Ui_Utilities:
         os.remove(screenshot_path)
         self.screenshot_pixmap.save(screenshot_path)
 
+
+
 class Ui_Generic(QtGui.QWidget):
   
     def __init__(self, parent, logger=None):
@@ -39,15 +43,11 @@ class Ui_Generic(QtGui.QWidget):
         super().__init__(parent)
 
         self.parent = parent
-
         self._logger = logger
-
         self.utils = Ui_Utilities(self)
 
         # keep track of arbitrary widgets to disable/enable    
         self._enabled_state_toggle_widgets = []
-
-
 
         self.construct_widget()
 
@@ -68,8 +68,6 @@ class Ui_Generic(QtGui.QWidget):
             self.utils.prefs.write(data)
         except Exception as e:
             self.log_error(e)
-
-
 
 
     def resizeEvent( self, event ):
@@ -133,7 +131,6 @@ class Ui_Generic(QtGui.QWidget):
             self.setup_events()
 
             self.logger.info("Base NEXODUS Qt Widget Constructed...")
-            raise Exception('derp')
         except Exception as e:
             self.logger.error(traceback.format_exc())
 
