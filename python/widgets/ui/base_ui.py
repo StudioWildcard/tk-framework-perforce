@@ -121,6 +121,9 @@ class Ui_Generic(QtGui.QWidget):
         self.logger.info("We don't have event connections implemented in this UI.")
         return None
 
+    def setup_style(self):
+        return None
+
     def construct_widget(self):
         try:
             self.make_components()
@@ -128,6 +131,7 @@ class Ui_Generic(QtGui.QWidget):
             self.make_layouts()
 
             self.setup_ui()
+            self.setup_style()
             self.setup_events()
 
             self.logger.info("Base NEXODUS Qt Widget Constructed...")
