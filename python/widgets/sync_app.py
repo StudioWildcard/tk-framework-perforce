@@ -85,8 +85,8 @@ class SyncApp():
 
     @property
     def ui(self):
-        if not self._ui:
-            self._ui = self.ui_class()
+        # if not self._ui:
+        #     self._ui = self.ui_class()
         return self._ui
 
     @ui.setter
@@ -246,10 +246,8 @@ class SyncApp():
 
     def report_worker_info(self, item_dict):
         
-        self.prepared_data.append(item_dict)
-        #self.logger.info(">>> premodel >>> THIS CAME FROM THE EVENT" + str(item_dict))
         try:
-            a = 3
+            self.ui.model.add_row(item_dict)
             self.ui.reload_view()
         except Exception as e:
             import traceback
