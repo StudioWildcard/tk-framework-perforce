@@ -1,5 +1,9 @@
+import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from .item_schemas import ItemSchema
+
+logger = sgtk.platform.get_logger(__name__)
+
 
 class MultiModel(QtCore.QAbstractItemModel):
     def __init__(self, data, parent=None):
@@ -11,6 +15,9 @@ class MultiModel(QtCore.QAbstractItemModel):
         
         # TODO: make this work with lists of lists of strings
         self.setupModelData(data, self.rootItem)
+
+        logger.debug('was able to set up the Model!!')
+
 
     def columnCount(self, parent):
         if parent.isValid():
