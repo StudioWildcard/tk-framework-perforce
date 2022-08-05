@@ -32,7 +32,7 @@ class Ui_SyncForm(Ui_Generic):
 
 
 
-        self.use_filters = ["dog", "cat"]
+        self.use_filters = ["dog", "cat", "gecko"]
 
         # bring in global SG search widget when there arent Assets given already to the app
         # search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "global_search_widget")
@@ -59,7 +59,7 @@ class Ui_SyncForm(Ui_Generic):
 
         # self.master_layout = QtGui.QVBoxLayout()
         # self.setLayout(self.master_layout)
-
+        """
         self.model = MultiModel(self.sync_app.data)
         # self.proxy_model = SortFilterModel(excludes=['TRex'], parent=self)
         # self.proxy_model.setSourceModel(self.model)
@@ -71,7 +71,7 @@ class Ui_SyncForm(Ui_Generic):
         # self.tree_view.setItemDelegateForColumn(1, MultiDelegate(self.tree_view))
         # self.tree_view.setItemDelegateForColumn(2, DoubleSpinBoxDelegate(self.tree_view))
         self.tree_view.expandAll()
-
+        """
         # self.list_view = QListView()
         # self.list_view.setModel(self.model)
 
@@ -120,7 +120,7 @@ class Ui_SyncForm(Ui_Generic):
 
         # arrange widgets in layout
         self._main_layout.addLayout(self._menu_layout)
-        self._main_layout.addWidget( self.tree_view)
+        #self._main_layout.addWidget( self.tree_view)
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
 
@@ -159,3 +159,54 @@ class Ui_SyncForm(Ui_Generic):
         menu.setTearOffEnabled(True)
 
         self._menu_layout.addWidget(btn)
+
+
+    def iterate_progress(self, message=None):
+        """
+        Iterate global progress counter and update the progressbar widget
+        Detect if progress is globally complete and handle hiding the progress widget
+        """
+        self._progress_bar.setVisible(True)
+        self.progress += 1
+        
+        self._progress_bar.setValue(self.progress)
+        # self.set_progress_message(message)
+        if self._progress_bar.value() == self._progress_bar.maximum():
+            
+            self.set_progress_message("{} complete".format(message))
+            self._progress_bar.setVisible(False)
+
+            self.set_ui_interactive(True)
+
+
+    def set_progress_message(self, message=None, percentf=" %p%"):
+        """
+        Set the message to see in the progress bar
+        """
+        self._progress_bar.setVisible(True)
+        self._progress_bar.setFormat("{}{}".format(message, percentf))
+
+
+    # def open_context_menu(self, point):
+    #     # Infos about the node selected.
+    #     try:
+    #         os_filebrowser_map = {
+    #             "win32" : "Explorer",
+    #             "darwin" : "Finder"
+    #         }
+    #         os_filebrowser = "file browser"
+    #         if sys.platform in os_filebrowser_map.keys():
+    #             os_filebrowser = os_filebrowser_map[sys.platform]
+            
+    #         tree_item = self._asset_tree.itemAt(point)
+    #         path_to_open = os.path.dirname(tree_item.data(2, QtCore.Qt.UserRole))
+        
+
+    #         menu = QtGui.QMenu()
+    #         action = menu.addAction("Open path in {}".format(os_filebrowser), 
+    #                                 partial(open_browser, path_to_open))
+                
+    #         menu.exec_(self._asset_tree.mapToGlobal(point))
+
+    #     except Exception as e:
+    #         self.log_error(e)
