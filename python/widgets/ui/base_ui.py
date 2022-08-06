@@ -1,4 +1,5 @@
 from sgtk.platform.qt import QtCore, QtGui
+
 # TODO: allow our toolchain to interact with Qt with other abstractors than relying on SG, for example
 
 import traceback
@@ -23,7 +24,7 @@ class Ui_Utilities:
         # print(basepath,'this is basepath')
         screenshot_path = os.path.join(basepath, image_file_path)
         # print(screenshot_path, 'this is screen path')
-        
+
         # bake the ui
         self.screenshot_pixmap = QtGui.QPixmap(self.main_widget.size())
         self.main_widget.render(self.screenshot_pixmap)
@@ -33,12 +34,14 @@ class Ui_Utilities:
         self.screenshot_pixmap.save(screenshot_path)
 
 
-
 class Ui_Generic(QtGui.QWidget):
-  
     def __init__(self, parent, logger=None):
         """
-        Construction of sync UI
+        Construction of generic base ui, containing
+        common utilities and methods for Ui state and management
+
+        Super-ing this class at the end of your inherited class allows you to specify the
+        widgets and layout as you wish first, and this base class will build it for you
         """
         super().__init__(parent)
 
@@ -46,16 +49,29 @@ class Ui_Generic(QtGui.QWidget):
         self._logger = logger
         self.utils = Ui_Utilities(self)
 
-        # keep track of arbitrary widgets to disable/enable    
+        # keep track of arbitrary widgets to disable/enable
         self._enabled_state_toggle_widgets = []
+        self._interactice = True
 
         self.construct_widget()
 
     @property
+    def interactive(self):
+        return self._interactice
+
+    @interactive.setter
+    def interactive(self, state):
+        """
+        Common utility to lock the UI while info-gathering or syncing is occuring
+        """
+        # toggle the installed filters
+        self._interactice = state
+        for widget in self._enabled_state_toggle_widgets:
+            widget.setEnabled(state)
+
+    @property
     def preferences(self):
-        return {
-            "window_size" : [self.width(), self.height()]
-        }
+        return {"window_size": [self.width(), self.height()]}
 
     def save_ui_state(self, state_str=None):
         """
@@ -69,22 +85,20 @@ class Ui_Generic(QtGui.QWidget):
         except Exception as e:
             self.log_error(e)
 
-
-    def resizeEvent( self, event ):
+    def resizeEvent(self, event):
         """
         Qt Re-implementation
         Keep track of window_size
         """
-        QtGui.QWidget.resizeEvent( self, event )
+        QtGui.QWidget.resizeEvent(self, event)
         self.save_ui_state()
 
-
-    @property    
+    @property
     def logger(self):
         if not self._logger:
             self._logger = logging.getLogger("genui")
         return self._logger
-    
+
     def make_components(self):
         """
         Main function to add Qt components to the app
@@ -94,8 +108,8 @@ class Ui_Generic(QtGui.QWidget):
 
     def make_widgets(self):
         """
-        Main function to implement to build the widget components. 
-        
+        Main function to implement to build the widget components.
+
         Reimplement to customize your available widgets.
         """
         self._button = QtGui.QPushButton("Nexodus Generic UI Template")
@@ -134,26 +148,17 @@ class Ui_Generic(QtGui.QWidget):
             self.setup_style()
             self.setup_events()
 
-            self.logger.info("Base NEXODUS Qt Widget Constructed...")
+            self.logger.info("Base Qt Widget Constructed...")
         except Exception as e:
             self.logger.error(traceback.format_exc())
 
-    def _centrally_control_enabled_state(self, widget):
+    def centrally_control_enabled_state(self, widget):
         """
-        Allows a widget argument to be added to a list that will be called when 
+        Allows a widget argument to be added to a list that will be called when
         enabling or disabling the global widget
 
         Args:
             widget (QWidget instance): QWidget that is desired for setting enable state_
         """
         if isinstance(widget, QtGui.QWidget):
-            self._enabled_state_toggle_widgets.append(widget) 
-
-    def set_ui_interactive(self, state):
-        """
-        Common utility to lock the UI while info-gathering or syncing is occuring
-        """
-        # toggle the installed filters
-
-        for widget in self._enabled_state_toggle_widgets:
-            widget.setEnabled(state)
+            self._enabled_state_toggle_widgets.append(widget)
