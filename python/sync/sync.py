@@ -49,22 +49,20 @@ class SyncHandler(object):
         self.p4_server = self._get_p4_server()
 
     def sync_with_mvc_dlg(self, app):
-            """
-            Show the sync window for user file syncing
+        """
+        Show the sync window for user file syncing
 
-            :returns: None
-            """
+        :returns: None
+        """
 
+        self.app = app
 
-            self.app = app
+        try:
+            # ensure this always runs on the main thread:
+            return self._fw.engine.execute_in_main_thread(self._sync_with_mvc_dlg)
+        finally:
+            pass
 
-
-            try:
-                # ensure this always runs on the main thread:
-                return self._fw.engine.execute_in_main_thread(self._sync_with_mvc_dlg)
-            finally:
-                pass
-        
     def _sync_with_mvc_dlg(self):
         """
         Actual implementation of sync_with_dlg.
@@ -78,8 +76,9 @@ class SyncHandler(object):
         try:
             from ..widgets import SyncFormMVC
 
-            result, _ = self._fw.engine.show_modal("Perforce Sync MVC", self._fw, SyncFormMVC, 
-                                                   self.app)
+            result, _ = self._fw.engine.show_modal(
+                "Perforce Sync MVC", self._fw, SyncFormMVC, self.app
+            )
 
             if result == QtGui.QDialog.Accepted:
                 pass
@@ -89,7 +88,7 @@ class SyncHandler(object):
 
         return None
 
-    def sync_with_dlg(self, app, entities_to_sync,  specific_files=False):
+    def sync_with_dlg(self, app, entities_to_sync, specific_files=False):
         """
         Show the sync window for user file syncing
 
@@ -105,7 +104,7 @@ class SyncHandler(object):
             return self._fw.engine.execute_in_main_thread(self._sync_with_dlg)
         finally:
             pass
-        
+
     def _sync_with_dlg(self):
         """
         Actual implementation of sync_with_dlg.
@@ -117,27 +116,37 @@ class SyncHandler(object):
         user = self._fw.execute_hook("hook_get_perforce_user", sg_user=sg_user)
 
         try:
-            from ..widgets import SyncForm
+            from ..widgets import SyncApp
 
-            result, _ = self._fw.engine.show_modal("Perforce Sync ", self._fw, SyncForm, 
-                                                   self.app, self.entities_to_sync, self.specific_files)
+            sync_app = SyncApp(self.app, self.entities_to_sync, self.specific_files)
 
-            if result == QtGui.QDialog.Accepted:
-                pass
+            result, widget = self._fw.engine.show_modal(
+                "Perforce Sync ", self._fw, sync_app.ui_class
+            )
+
+            sync_app.ui.utils.render_to_image()
+
+            # if result == QtGui.QDialog.Accepted:
+            #     pass
 
         except Exception as e:
             self._fw.log_error(e)
 
         return None
 
-
     def _get_p4_server(self):
         server_field = self._fw.get_setting("server_field")
-        sg_project = self._fw.shotgun.find_one('Project', [['id', 'is', self._fw.context.project['id']]], [server_field])
+        sg_project = self._fw.shotgun.find_one(
+            "Project", [["id", "is", self._fw.context.project["id"]]], [server_field]
+        )
         server = sg_project.get(server_field)
 
         if not server:
-            self._fw.log_error("No server was configured for this project! Enter the p4 server in the project field '{}'".format(server_field))
+            self._fw.log_error(
+                "No server was configured for this project! Enter the p4 server in the project field '{}'".format(
+                    server_field
+                )
+            )
             return None
 
         return str(sg_project.get(server_field))
@@ -154,7 +163,9 @@ def sync_with_dialog(app, entities_to_sync=None, specific_files=False, mvc=None)
         if mvc:
             widget = SyncHandler(fw).sync_with_mvc_dlg(app)
         else:
-            widget = SyncHandler(fw).sync_with_dlg(app, entities_to_sync, specific_files=specific_files)
+            widget = SyncHandler(fw).sync_with_dlg(
+                app, entities_to_sync, specific_files=specific_files
+            )
         return widget
-    except Exception  as e:
+    except Exception as e:
         fw.log_error(traceback.format_exc())
