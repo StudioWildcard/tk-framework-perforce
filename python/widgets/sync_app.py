@@ -24,8 +24,9 @@ from sgtk.platform.qt import QtCore, QtGui
 from functools import partial
 
 from .sync_workers import SyncWorker, AssetInfoGatherWorker
-from .utils import PrefFile, open_browser, partialclass, ProgressHandler
+from .utils import PrefFile, open_browser, partialclass
 from .ui.sync_form import Ui_SyncForm
+from .progress import ProgressHandler
 
 
 class SyncApp:
