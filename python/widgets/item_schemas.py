@@ -16,18 +16,29 @@ schemas = {
     ],
     "asset_item_schema": [
         {"key": "asset_name", "title": "Name", "default": "No name"},
-        {"key": "status", "title": "Descr", "default": "No Description"},
+        {
+            "key": "status",
+            "title": "Descr",
+            "default": "No Description",
+            "transform": "total_to_sync",
+        },
         {"key": "_", "title": "Version", "default": " "},
     ],
 }
 
 
-class SyncTransformers:
+class Transformers:
     def __init__(self) -> None:
-        pass
+        self.item = None
 
     def sync_item(self, dict_value):
         return dict_value.get("depotFile").split("/")[-1]
+
+    def total_to_sync(self, dict_value):
+        items = 0
+        if self.item:
+            items = self.item.childCount()
+        return "Ready to Sync ({})".format(items)
 
 
 class Item(object):
@@ -100,7 +111,7 @@ class ItemSchema(Item):
         self.schemas = schemas
 
         self.transformers = transformers
-        self.transformers = SyncTransformers()
+        self.transformers = Transformers()
 
         if schema:
             if schema in self.schemas.keys():
@@ -136,6 +147,8 @@ class ItemSchema(Item):
                 val = self.data_in[item["key"]]
                 if item.get("transform"):
                     if self.transformers:
+                        # give transformer access to item
+                        self.transformers.item = self
                         if hasattr(self.transformers, item["transform"]):
                             val = getattr(self.transformers, item["transform"])(val)
 
