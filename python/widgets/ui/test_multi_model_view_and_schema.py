@@ -46,17 +46,19 @@ class Schema(object):
         try:
             self.schema['key']
         except KeyError:
-            print('')
+            #probably want to rename key to something else.
+            print('Schema not valid, value for key not found')
             
                     
                     
-    def create_schema(self, type, key=None, title=None):
+    def create_schema(self, type, key=None, title=None, delegate=None):
         
         self.type = type
         schema = {'default': 'No name'}
         
         schema['key'] = key
         schema['title'] = title
+        schema['deletage'] = delegate
         
         
         #need to validate schema after creation. Should it happen here or should that be a specific call afterwards?
