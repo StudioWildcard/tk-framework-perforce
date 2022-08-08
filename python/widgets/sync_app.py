@@ -162,6 +162,14 @@ class SyncApp:
         self.logger.info(f"App build completed with workers")
 
     def track_new_progress(self, progress):
+        """
+        Register a new progress tracker so multiple
+        sources can contribute to global progress
+
+        Args:
+            progress (dict): dict from workers reporting item count to iterate
+
+        """
         self.progress_handler.track_progress(
             items=progress.get("count"), id=progress.get("id")
         )
