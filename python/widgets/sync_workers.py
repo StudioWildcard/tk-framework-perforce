@@ -199,7 +199,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
             self.p4 = self.fw.connection.connect()
-
+            self.fw.log_error(self.p4.run("client", ["view"]))
             arguments = ["-n"]
             if self.force_sync:
                 arguments.append("-f")
