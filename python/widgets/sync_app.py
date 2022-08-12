@@ -105,6 +105,9 @@ class SyncApp:
             self._fw = sgtk.platform.current_bundle()
         return self._fw
 
+
+
+
     @property
     def p4(self):
         """
@@ -114,40 +117,6 @@ class SyncApp:
             self._p4 = self.fw.connection.connect()
         return self._p4
 
-    def update_available_filters(self, filter_info):
-        """
-        >> NOT IMPLEMENTED YET
-
-        TODO: implement during scraping/transformation of data
-        Populate the steps filter menu as steps are discovered in the p4 scan search
-        """
-        try:
-            filter_type = filter_info[0]
-            filter_value = filter_info[1]
-
-            actions = getattr(self, "_{}_actions".format(filter_type))
-            # if actions:
-            if filter_value not in actions.keys():
-                action = QtGui.QAction(self)
-
-                action.setCheckable(True)
-
-                self.prefs.read()
-                filters = self.prefs.data.get("{}_filters".format(filter_type))
-                check_state = True
-                if filter_value in filters.keys():
-                    check_state = filters[filter_value]
-
-                action.setChecked(check_state)
-                action.setText(str(filter_value))
-                action.triggered.connect(self.save_ui_state)
-                action.triggered.connect(self.filter_items)
-
-                getattr(self, "_{}_menu".format(filter_type)).addAction(action)
-                actions[filter_value] = action
-
-        except Exception as e:
-            self.log_error(e)
 
     def setup(self):
         """
@@ -174,6 +143,9 @@ class SyncApp:
         self.progress_handler.track_progress(
             items=progress.get("count"), id=progress.get("id")
         )
+
+
+
 
     def report_worker_info(self, item: dict) -> None:
         """
@@ -203,6 +175,7 @@ class SyncApp:
             # the "row" we're adding is a dictionary, but since the model has
             # its own parenting logic, it may ultimately be 2 items created in the model:
             # a parent for the sync item, and the sync item.
+            self.ui.update_available_filters(("ext", item.get('ext')))
             self.ui.model.add_row(item)
             self.ui.reload_view()
 
@@ -225,7 +198,7 @@ class SyncApp:
             completion_dict (dict)
         """
         try:
-            self.logger.info("GOT THE THINGS!!!")
+            self.logger.info("Finished gathering data from perforce.")
             self.ui.interactive = True
         except Exception as e:
             self.logger.error(traceback.format_exc())
