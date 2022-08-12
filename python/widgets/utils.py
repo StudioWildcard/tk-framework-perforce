@@ -7,7 +7,7 @@ import uuid
 
 
 class PrefFile:
-    def __init__(self, filename=".p3syncpref"):
+    def __init__(self, filename=".p4syncpref"):
         self.root_dir = os.path.expanduser("~")
         self.pref_file = os.path.join(self.root_dir, filename)
 
