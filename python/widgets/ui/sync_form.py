@@ -31,7 +31,7 @@ class Ui_SyncForm(Ui_Generic):
         self.proxy_model = SortFilterModel(excludes=["aaaaaaaaaaaa"], parent=self)
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
-        self.proxy_model = self.model
+        # self.proxy_model = self.model
 
         # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
@@ -41,7 +41,7 @@ class Ui_SyncForm(Ui_Generic):
         """
         Makes UI widgets for the main form
         """
-        self.use_filters = ["dog", "cat", "gecko"]
+        self.use_filters = ["ext"]
 
         self._do = QtGui.QPushButton("Sync")
         self._asset_tree = QtGui.QTreeWidget()
@@ -102,6 +102,7 @@ class Ui_SyncForm(Ui_Generic):
 
         self.tree_view.setModel(self.proxy_model)
         self.tree_view.setAnimated(True)
+        self.tree_view.setColumnWidth(1, 200)
 
         self.view_stack.addWidget(self.tree_view)
         self.view_stack.addWidget(self.b)
@@ -113,7 +114,7 @@ class Ui_SyncForm(Ui_Generic):
         # self._asset_tree.setHeaderItem(self._asset_tree_header)
         self._asset_tree.setWordWrap(True)
         self._asset_tree.setColumnWidth(0, 150)
-        self._asset_tree.setColumnWidth(1, 160)
+        self._asset_tree.setColumnWidth(1, 190)
 
         self._hide_syncd.setText("Hide if nothing to sync")
 
@@ -163,6 +164,68 @@ class Ui_SyncForm(Ui_Generic):
             )
         )
 
+    def update_available_filters(self, filter_info):
+        """
+        
+        TODO: implement during scraping/transformation of data
+        Populate the steps filter menu as steps are discovered in the p4 scan search
+        """
+        try:
+            filter_type = filter_info[0]
+            filter_value = filter_info[1]
+
+
+            actions = getattr(self, "_{}_actions".format(filter_type))
+            #if actions:
+            if filter_value not in actions.keys():
+                action = QtGui.QAction(self)
+                
+                action.setCheckable(True)
+
+                self.utils.prefs.read()
+                filters = self.utils.prefs.data.get('{}_filters'.format(filter_type))
+                check_state = True
+                if filters:
+                    if filter_value in filters.keys():
+                        check_state = filters[filter_value]
+
+                
+
+                action.setChecked(check_state)
+                action.setText(str(filter_value))
+                action.triggered.connect(self.filter_triggered)
+               #  action.triggered.connect(self.filter_items)
+
+                getattr(self, "_{}_menu".format(filter_type)).addAction(action)
+                actions[filter_value] = action
+
+        except Exception as e:
+            self.logger.error(e)
+
+    def filter_triggered(self):
+        data = self.utils.prefs.read()
+        for f in self.use_filters:
+            f = f.lower()
+            filter_name = "{}_filters".format(f)
+            filter_data = {}
+
+            # use existing filter data if exists
+            if data.get(filter_name):
+                filter_data = data.get(filter_name)
+            # overwrite it with  our scan of presently checked items
+            if hasattr(self, "_{}_actions".format(f)):
+                actions = getattr(self, "_{}_actions".format(f))
+                if actions:
+                    for k,v in actions.items():
+                        filter_data[k] = v.isChecked()
+
+            data[filter_name] = filter_data
+        
+            self.utils.prefs.write(data)
+            
+
+
+
     def button_menu_factory(self, name=None):
         # sets up a filter for use in
         width = 80
@@ -185,6 +248,8 @@ class Ui_SyncForm(Ui_Generic):
 
         menu.setFixedWidth(width)
         menu.setTearOffEnabled(True)
+
+        self.logger.error(str(getattr(self, "_{}_actions".format(short_name))))
 
         self._menu_layout.addWidget(btn)
 
