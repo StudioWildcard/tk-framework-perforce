@@ -105,6 +105,11 @@ class MultiModel(QtCore.QAbstractItemModel):
 
         return parentItem.childCount()
 
+    def refresh(self):
+        self.layoutAboutToBeChanged.emit()
+        self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
+        self.layoutChanged.emit()
+
     def add_row(self, data_item):
         if data_item.get("asset_name"):
             if not self.primary_roots.get(data_item["asset_name"]):
@@ -120,10 +125,15 @@ class MultiModel(QtCore.QAbstractItemModel):
                 parent=self.primary_roots[data_item["asset_name"]],
                 schema="sync_item_schema",
             )
-            self.layoutAboutToBeChanged.emit()
-            self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
-            self.layoutChanged.emit()
+            self.refresh()
+
         # lines is our list
+
+    def item(self, index):
+        if not index.isValid():
+            return self.rootItem
+        else:
+            return index.internalPointer()
 
     def setupModelData(self, data, parent):
 

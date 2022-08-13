@@ -62,7 +62,7 @@ class Ui_SyncForm(Ui_Generic):
 
         self.view_stack = QtGui.QStackedWidget()
         self.b = QtGui.QLabel(
-            "Gathering contextual request from Perforce Servers for {} items...".format(
+            "<center>Gathering contextual request from Perforce Servers for {} items...</center>".format(
                 str(len(self.sync_app.input_data))
             )
         )
@@ -132,6 +132,8 @@ class Ui_SyncForm(Ui_Generic):
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
 
+        self._rescan.clicked.connect(self.filterd)
+
         for widget in [self._do, self._force_sync, self._rescan, self.tree_view]:
             self.centrally_control_enabled_state(widget)
 
@@ -166,7 +168,7 @@ class Ui_SyncForm(Ui_Generic):
 
     def update_available_filters(self, filter_info):
         """
-        
+
         TODO: implement during scraping/transformation of data
         Populate the steps filter menu as steps are discovered in the p4 scan search
         """
@@ -174,27 +176,24 @@ class Ui_SyncForm(Ui_Generic):
             filter_type = filter_info[0]
             filter_value = filter_info[1]
 
-
             actions = getattr(self, "_{}_actions".format(filter_type))
-            #if actions:
+            # if actions:
             if filter_value not in actions.keys():
                 action = QtGui.QAction(self)
-                
+
                 action.setCheckable(True)
 
                 self.utils.prefs.read()
-                filters = self.utils.prefs.data.get('{}_filters'.format(filter_type))
+                filters = self.utils.prefs.data.get("{}_filters".format(filter_type))
                 check_state = True
                 if filters:
                     if filter_value in filters.keys():
                         check_state = filters[filter_value]
 
-                
-
                 action.setChecked(check_state)
                 action.setText(str(filter_value))
                 action.triggered.connect(self.filter_triggered)
-               #  action.triggered.connect(self.filter_items)
+                #  action.triggered.connect(self.filter_items)
 
                 getattr(self, "_{}_menu".format(filter_type)).addAction(action)
                 actions[filter_value] = action
@@ -216,15 +215,12 @@ class Ui_SyncForm(Ui_Generic):
             if hasattr(self, "_{}_actions".format(f)):
                 actions = getattr(self, "_{}_actions".format(f))
                 if actions:
-                    for k,v in actions.items():
+                    for k, v in actions.items():
                         filter_data[k] = v.isChecked()
 
             data[filter_name] = filter_data
-        
+
             self.utils.prefs.write(data)
-            
-
-
 
     def button_menu_factory(self, name=None):
         # sets up a filter for use in
@@ -252,6 +248,9 @@ class Ui_SyncForm(Ui_Generic):
         self.logger.error(str(getattr(self, "_{}_actions".format(short_name))))
 
         self._menu_layout.addWidget(btn)
+
+    def filterd(self):
+        self.model.refresh()
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.tree_view)
