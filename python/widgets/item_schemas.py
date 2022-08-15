@@ -16,46 +16,32 @@ schemas = {
             "key": "status",
             "title": "Descr",
             "default": "No Description",
-            "icon_finder": "status",
+            "icon_finder": "asset_status",
         },
         {"key": "ext", "title": "Extension", "default": "No Description"},
+        {"key": "_", "title": "Version", "default": "2"},
     ],
     "asset_item_schema": [
-        {"key": "asset_name", "title": "Name", "default": "No name"},
+        {
+            "key": "asset_name",
+            "title": "Name",
+            "transform": "asset_name",
+            "default": "No name",
+        },
         {
             "key": "status",
             "title": "Descr",
             "default": "No Description",
             "transform": "total_to_sync",
         },
-        {"key": "_", "title": "Version", "default": " "},
+        {"key": "_", "title": "Extension", "default": " "},
+        {
+            "key": "_",
+            "title": "Version",
+            "default": """ """,
+        },
     ],
 }
-
-
-class IconManager:
-    def __init__(self, icon_finder):
-        self.icon_finder = icon_finder
-
-    def get_icon(self, name):
-        return self.icon_finder.get_path(name)
-
-
-class Transformers:
-    def __init__(self) -> None:
-        self._item = None
-
-        # if you use a transformer method for heavy calculation,
-        # you may intend to store
-        self._cache = {}
-
-    @property
-    def item(self):
-        return self._item
-
-    @item.setter
-    def item(self, item):
-        self._item = item
 
 
 class Transformers:
@@ -77,11 +63,25 @@ class Transformers:
     def sync_item(self, dict_value):
         return dict_value.get("depotFile").split("/")[-1]
 
+    def asset_name(self, dict_value):
+        count = 0
+        if self.item:
+            count = self.item.childCount()
+        if count:
+            return dict_value + " ({})".format(count)
+        return dict_value
+
     def total_to_sync(self, dict_value):
         items = 0
         if self.item:
             items = self.item.childCount()
-        return "Ready to Sync ({})".format(items)
+        filtered = items - self.item.visible_children()
+        msg = "{} To Sync".format(items)
+
+        if filtered:
+            msg += " ({} filtered)".format(filtered)
+
+        return msg
 
 
 class Row:
@@ -89,12 +89,17 @@ class Row:
         self.childItems = []
         self.data_in = data
         self.parentItem = parent
+
+        self.visible = True
         if parent:
             parent.appendChild(self)
 
     @property
     def itemData(self):
         return list(self.data_in.keys())
+
+    def visible_children(self):
+        return len([i for i in self.childItems if i.visible])
 
     def appendChild(self, item):
         self.childItems.append(item)
