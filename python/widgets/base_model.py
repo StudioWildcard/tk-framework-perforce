@@ -5,11 +5,31 @@ from .item_schemas import RowSchema
 logger = sgtk.platform.get_logger(__name__)
 
 
+class IconManager:
+    def __init__(self, icon_finder):
+        self.item = None
+        self.col = 0
+        self.icon_finder = icon_finder
+
+    @property
+    def current_data(self):
+        return self.item.data(self.col)
+
+    def get_icon(self, name):
+        return self.icon_finder(name)
+
+    def asset_status(self):
+
+        return self.get_icon("load")
+
+
 class MultiModel(QtCore.QAbstractItemModel):
     def __init__(self, data=None, parent=None):
         super().__init__()
 
         self.main_ui = parent
+
+        self.icon_manager = IconManager(icon_finder=self.main_ui.icon_path)
 
         # self.rootItem will specify your headlines
         # TODO: pass your tree item in
@@ -46,15 +66,26 @@ class MultiModel(QtCore.QAbstractItemModel):
                 QtCore.Qt.DisplayRole,
                 QtCore.Qt.UserRole,
                 QtCore.Qt.DecorationRole,
+                QtCore.Qt.SizeHintRole,
             ]:
                 return None
             item = index.internalPointer()
             if role == QtCore.Qt.DecorationRole:
-                icon = item.column_schema[index.column()].get("icon")
-                if icon:
-                    return QtGui.QPixmap(self.main_ui.icon_path(icon))
+                icon_finder = item.column_schema[index.column()].get("icon_finder")
+                if icon_finder:
+                    if hasattr(self.icon_manager, icon_finder):
+                        self.icon_manager.item = item
+                        self.icon_manager.col = index.column()
+                        icon = QtGui.QPixmap(
+                            getattr(self.icon_manager, icon_finder)()
+                        ).scaled(20, 20)
+                        return icon
+
+            if role == QtCore.Qt.SizeHintRole:
+                return QtCore.QSize(30, 30)
+
             if role == QtCore.Qt.UserRole:
-                # used to do simple
+                # used to do simple child relation as UserData in the cell itself
                 return item.row()
 
             else:
