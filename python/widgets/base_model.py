@@ -1,17 +1,19 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
-from .item_schemas import ItemSchema
+from .item_schemas import RowSchema
 
 logger = sgtk.platform.get_logger(__name__)
 
 
 class MultiModel(QtCore.QAbstractItemModel):
     def __init__(self, data=None, parent=None):
-        super().__init__(parent)
+        super().__init__()
+
+        self.main_ui = parent
 
         # self.rootItem will specify your headlines
         # TODO: pass your tree item in
-        self.rootItem = ItemSchema(schema="asset_item_schema")
+        self.rootItem = RowSchema(schema="asset_item_schema")
 
         # TODO: make this work with lists of lists of strings
         if data:
@@ -34,18 +36,33 @@ class MultiModel(QtCore.QAbstractItemModel):
     #     item.set_data(index.column(), value)
 
     def data(self, index, role):
-        if not index.isValid():
-            return None
 
-        if role not in [QtCore.Qt.DisplayRole, QtCore.Qt.UserRole]:
-            return None
+        try:
 
-        item = index.internalPointer()
+            if not index.isValid():
+                return None
 
-        if role == QtCore.Qt.UserRole:
-            return item.row()
-        else:
-            return item.data(index.column())
+            if role not in [
+                QtCore.Qt.DisplayRole,
+                QtCore.Qt.UserRole,
+                QtCore.Qt.DecorationRole,
+            ]:
+                return None
+            item = index.internalPointer()
+            if role == QtCore.Qt.DecorationRole:
+                icon = item.column_schema[index.column()].get("icon")
+                if icon:
+                    return QtGui.QPixmap(self.main_ui.icon_path(icon))
+            if role == QtCore.Qt.UserRole:
+                # used to do simple
+                return item.row()
+
+            else:
+                return item.data(index.column())
+        except:
+            import traceback
+
+            logger.error(traceback.format_exc())
 
     def flags(self, index):
         if not index.isValid():
@@ -113,14 +130,14 @@ class MultiModel(QtCore.QAbstractItemModel):
     def add_row(self, data_item):
         if data_item.get("asset_name"):
             if not self.primary_roots.get(data_item["asset_name"]):
-                asset_item = ItemSchema(
+                asset_item = RowSchema(
                     data=data_item,
                     parent=self.rootItem,
                     schema="asset_item_schema",
                     primary=True,
                 )
                 self.primary_roots[data_item["asset_name"]] = asset_item
-            sync_item = ItemSchema(
+            sync_item = RowSchema(
                 data=data_item,
                 parent=self.primary_roots[data_item["asset_name"]],
                 schema="sync_item_schema",
