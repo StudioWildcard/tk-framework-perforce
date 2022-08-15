@@ -105,9 +105,6 @@ class SyncApp:
             self._fw = sgtk.platform.current_bundle()
         return self._fw
 
-
-
-
     @property
     def p4(self):
         """
@@ -116,7 +113,6 @@ class SyncApp:
         if not self._p4:
             self._p4 = self.fw.connection.connect()
         return self._p4
-
 
     def setup(self):
         """
@@ -144,9 +140,6 @@ class SyncApp:
             items=progress.get("count"), id=progress.get("id")
         )
 
-
-
-
     def report_worker_info(self, item: dict) -> None:
         """
         Method to process incoming dictionaries regarding items found
@@ -166,16 +159,19 @@ class SyncApp:
             # self.logger.info(
             #     "Item received from worker thread:\n{}".format(pprint.pformat(item))
             # )
+
+            if not self.ui.progress_handler:
+                self.ui.progress_handler = self.progress_handler
             self.progress_handler.tracker(item.get("worker_id")).iterate()
-            self.logger.info(
+            self.logger.debug(
                 "Overall progress: {}".format(self.progress_handler.progress)
             )
+            self.ui.update_progress()
 
             # we'll add a row to our model.
             # the "row" we're adding is a dictionary, but since the model has
             # its own parenting logic, it may ultimately be 2 items created in the model:
             # a parent for the sync item, and the sync item.
-            self.ui.update_available_filters(("ext", item.get('ext')))
             self.ui.model.add_row(item)
             self.ui.reload_view()
 
