@@ -1,3 +1,4 @@
+from logging import Filter
 import traceback
 import os
 
@@ -13,6 +14,8 @@ class Ui_SyncForm(Ui_Generic):
         """
         Construction of sync UI
         """
+        self.progress_handler = None
+
         self.sync_app = app
         self.sg = self.sync_app.fw
         self.sync_app.ui = self
@@ -106,6 +109,8 @@ class Ui_SyncForm(Ui_Generic):
         self.tree_view.setAnimated(True)
         self.tree_view.setColumnWidth(1, 200)
 
+        # self.tree_view.setIconSize(10)
+
         self.view_stack.addWidget(self.tree_view)
         self.view_stack.addWidget(self.b)
         self.view_stack.setCurrentWidget(self.b)
@@ -149,6 +154,15 @@ class Ui_SyncForm(Ui_Generic):
         # self._rescan.clicked.connect(self.rescan)
         self.interactive = False
         self.show_waiting()
+
+    def update_progress(self):
+        self._progress_bar.setVisible(True)
+        self._progress_bar.setRange(0, 100)
+        if not self.progress_handler.progress == 1:
+            self._progress_bar.setValue(self.progress_handler.progress * 100)
+        else:
+            self._progress_bar.setVisible(False)
+            self._progress_bar.setValue(0)
 
     def icon_path(self, name) -> str:
         return os.path.join(
