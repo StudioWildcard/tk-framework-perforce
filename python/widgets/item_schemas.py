@@ -1,4 +1,5 @@
 import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -11,7 +12,12 @@ schemas = {
             "delegate": None,
             "transform": "sync_item",
         },
-        {"key": "status", "title": "Descr", "default": "No Description"},
+        {
+            "key": "status",
+            "title": "Descr",
+            "default": "No Description",
+            "icon_finder": "status",
+        },
         {"key": "ext", "title": "Extension", "default": "No Description"},
     ],
     "asset_item_schema": [
@@ -27,9 +33,46 @@ schemas = {
 }
 
 
+class IconManager:
+    def __init__(self, icon_finder):
+        self.icon_finder = icon_finder
+
+    def get_icon(self, name):
+        return self.icon_finder.get_path(name)
+
+
 class Transformers:
     def __init__(self) -> None:
-        self.item = None
+        self._item = None
+
+        # if you use a transformer method for heavy calculation,
+        # you may intend to store
+        self._cache = {}
+
+    @property
+    def item(self):
+        return self._item
+
+    @item.setter
+    def item(self, item):
+        self._item = item
+
+
+class Transformers:
+    def __init__(self) -> None:
+        self._item = None
+
+        # if you use a transformer method for heavy calculation,
+        # you may intend to store
+        self._cache = {}
+
+    @property
+    def item(self):
+        return self._item
+
+    @item.setter
+    def item(self, item):
+        self._item = item
 
     def sync_item(self, dict_value):
         return dict_value.get("depotFile").split("/")[-1]
@@ -41,7 +84,7 @@ class Transformers:
         return "Ready to Sync ({})".format(items)
 
 
-class Item(object):
+class Row:
     def __init__(self, data, parent=None):
         self.childItems = []
         self.data_in = data
@@ -91,7 +134,7 @@ class Item(object):
         return 0
 
 
-class ItemSchema(Item):
+class RowSchema(Row):
     def __init__(
         self,
         data=None,
@@ -136,7 +179,6 @@ class ItemSchema(Item):
 
     @property
     def itemData(self):
-
         self._serial_data = []
         for item in self.column_schema:
 
@@ -155,4 +197,5 @@ class ItemSchema(Item):
             elif item.get("default"):
                 val = item["default"]
             self._serial_data.append(val)
+
         return self._serial_data
