@@ -1,7 +1,9 @@
 import traceback
+import os
+
 from .base_ui import Ui_Generic
 from sgtk.platform.qt import QtCore, QtGui
-from ..item_schemas import ItemSchema
+from ..item_schemas import RowSchema
 from ..base_model import MultiModel
 from ..filter_models import SortFilterModel
 
@@ -22,10 +24,10 @@ class Ui_SyncForm(Ui_Generic):
     def make_components(self):
 
         # the utility that defines how we hand raw data to the model
-        self.schema = ItemSchema
+        self.schema = RowSchema
 
         # the utility that routes the data into a table/view
-        self.model = MultiModel()
+        self.model = MultiModel(parent=self)
 
         # the filtering/sorting utility that uses our existing model to modify
         self.proxy_model = SortFilterModel(excludes=["aaaaaaaaaaaa"], parent=self)
@@ -62,7 +64,7 @@ class Ui_SyncForm(Ui_Generic):
 
         self.view_stack = QtGui.QStackedWidget()
         self.b = QtGui.QLabel(
-            "<center>Gathering contextual request from Perforce Servers for {} items...</center>".format(
+            "<center><h3>Gathering contextual request from Perforce Servers for:<br></h3><h5> {} items...</center>".format(
                 str(len(self.sync_app.input_data))
             )
         )
@@ -148,6 +150,11 @@ class Ui_SyncForm(Ui_Generic):
         self.interactive = False
         self.show_waiting()
 
+    def icon_path(self, name) -> str:
+        return os.path.join(
+            self.sync_app.basepath, "resources", "status_{}.png".format(name)
+        )
+
     def make_icon(self, name) -> QtGui.QIcon:
         """
         Convenience maker of icons if following a given naming pattern.
@@ -160,11 +167,7 @@ class Ui_SyncForm(Ui_Generic):
         """
         import os
 
-        return QtGui.QIcon(
-            os.path.join(
-                self.sync_app.basepath, "resources", "status_{}.png".format(name)
-            )
-        )
+        return QtGui.QIcon(self.icon_path(name))
 
     def update_available_filters(self, filter_info):
         """
