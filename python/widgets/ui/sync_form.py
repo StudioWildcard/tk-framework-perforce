@@ -165,9 +165,12 @@ class Ui_SyncForm(Ui_Generic):
             self._progress_bar.setValue(0)
 
     def icon_path(self, name) -> str:
-        return os.path.join(
-            self.sync_app.basepath, "resources", "status_{}.png".format(name)
-        )
+        icon_path = self.sync_app.shotgun_globals.icon.get_entity_type_icon_url(name)
+        if not icon_path:
+            icon_path = os.path.join(
+                self.sync_app.basepath, "resources", "status_{}.png".format(name)
+            )
+        return icon_path
 
     def make_icon(self, name) -> QtGui.QIcon:
         """
