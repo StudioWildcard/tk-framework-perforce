@@ -49,6 +49,9 @@ class SyncApp:
         self.progress_handler = ProgressHandler()
 
         self.workers = {"asset_info": AssetInfoGatherWorker, "sync": SyncWorker}
+        self.shotgun_globals = sgtk.platform.import_framework(
+            "tk-framework-shotgunutils", "shotgun_globals"
+        )
 
         # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
@@ -163,15 +166,13 @@ class SyncApp:
             if not self.ui.progress_handler:
                 self.ui.progress_handler = self.progress_handler
             self.progress_handler.tracker(item.get("worker_id")).iterate()
-            self.logger.debug(
-                "Overall progress: {}".format(self.progress_handler.progress)
-            )
             self.ui.update_progress()
 
             # we'll add a row to our model.
             # the "row" we're adding is a dictionary, but since the model has
             # its own parenting logic, it may ultimately be 2 items created in the model:
-            # a parent for the sync item, and the sync item.
+            # a parent for the sync item, and the sync item. If the parent already exists,
+            # it will create just the sync item.
             self.ui.model.add_row(item)
             self.ui.reload_view()
 
