@@ -199,7 +199,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
             self.p4 = self.fw.connection.connect()
-            self.fw.log_error(self.p4.run("client", ["view"]))
+            # self.fw.log_error(self.p4.run("client", ["view"]))
             arguments = ["-n"]
             if self.force_sync:
                 arguments.append("-f")
@@ -323,7 +323,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                             status = item.get("action")
                             if self.entity.get("type") in ["PublishedFile"]:
                                 status = "Exact File"
-                            time.sleep(0.017)
+                            # time.sleep(0.017)
                             self.item_found_to_sync.emit(
                                 {
                                     "worker_id": self.id,
