@@ -16,7 +16,7 @@ schemas = {
             "key": "status",
             "title": "Descr",
             "default": "No Description",
-            "icon_finder": "asset_status",
+            "icon_finder": "sync_status",
         },
         {"key": "ext", "title": "Extension", "default": "No Description"},
         {"key": "_", "title": "Version", "default": "2"},
@@ -27,12 +27,14 @@ schemas = {
             "title": "Name",
             "transform": "asset_name",
             "default": "No name",
+            "icon": "Shot",
         },
         {
             "key": "status",
             "title": "Descr",
             "default": "No Description",
             "transform": "total_to_sync",
+            "icon_finder": "asset_status",
         },
         {"key": "_", "title": "Extension", "default": " "},
         {
@@ -76,7 +78,7 @@ class Transformers:
         if self.item:
             items = self.item.childCount()
         filtered = items - self.item.visible_children()
-        msg = "{} To Sync".format(items)
+        msg = "{} To Sync".format(items - filtered)
 
         if filtered:
             msg += " ({} filtered)".format(filtered)
