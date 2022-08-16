@@ -18,9 +18,11 @@ class IconManager:
     def get_icon(self, name):
         return self.icon_finder(name)
 
-    def asset_status(self):
-
+    def sync_status(self):
         return self.get_icon("load")
+
+    def asset_status(self):
+        return self.get_icon("validate")
 
 
 class MultiModel(QtCore.QAbstractItemModel):
@@ -80,6 +82,13 @@ class MultiModel(QtCore.QAbstractItemModel):
                             getattr(self.icon_manager, icon_finder)()
                         ).scaled(20, 20)
                         return icon
+
+                icon_static = item.column_schema[index.column()].get("icon")
+                # logger.info()
+                if icon_static:
+                    return QtGui.QPixmap(
+                        self.icon_manager.get_icon(icon_static)
+                    ).scaled(20, 20)
 
             if role == QtCore.Qt.SizeHintRole:
                 return QtCore.QSize(30, 30)
