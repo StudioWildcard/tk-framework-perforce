@@ -8,9 +8,16 @@ class SortFilterModel(QtGui.QSortFilterProxyModel):
     that end with the given extension
     """
 
-    def __init__(self, excludes, *args, **kwargs):
+    def __init__(
+        self,
+        excludes,
+        *args,
+        parent=None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._excludes = excludes[:]
+        self.main_ui = parent
 
     def filterAcceptsRow(self, srcRow, srcParent) -> bool:
         """
@@ -25,11 +32,38 @@ class SortFilterModel(QtGui.QSortFilterProxyModel):
         Returns:
             bool: True if row is to remain, False if to be filtered
         """
-        idx = self.sourceModel().index(srcRow, 0, srcParent)
-        name = idx.data()
-        print("Filtered: {}".format(name))
-        for i in self._excludes:
-            if i in name:
-                return False
+        # idx = self.sourceModel().index(srcRow, 1, srcParent)
+        # item = idx.internalPointer()
+        try:
 
-        return True
+            parent_item = self.sourceModel().item(srcParent)
+            item = parent_item.child(srcRow)
+            item.visible = True
+
+            if hasattr(item, "primary"):
+                if item.primary:
+
+                    # lets check if there's anything to sync. If not, we'll filter.
+                    # if all([not i.visible for i in item.childItems]):
+                    #     return False
+                    return True
+            # # else:
+            name = item.itemData[2]
+
+            # self.main_app.logger.error(str(item.itemData))
+            include = self.main_ui.utils.prefs.data.get("ext_filters")
+            # self.main_app.logger.info(include)
+            include_list = [k for k, v in include.items() if v is True]
+            # self.main_app.logger.info(str())
+            # # self.main_app.logger.info(tree_item)
+
+            if name:
+                if name not in include_list:
+                    # self.main_app.logger.error("HIDIN!!!!!: {}".format(name))
+                    print("Filtered: {}".format(name))
+                    item.visible = False
+                    return False
+            return True
+        except Exception as e:
+            self.main_app.logger.info(e)
+            return True
