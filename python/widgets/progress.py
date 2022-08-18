@@ -11,6 +11,12 @@ class ProgressTracker:
         self.min = min
 
     @property
+    def complete(self):
+        if self.current >= self.max:
+            return True
+        return False
+
+    @property
     def progress(self):
         # we translate to 0 for our min and bring down our max with it
 
@@ -39,6 +45,8 @@ class ProgressHandler:
         self.format = ""
         self.message = "Progress: "
 
+        self.meta_tracker = ProgressTracker()
+
     def tracker(self, id):
         return self.queue.get(id)
 
@@ -49,6 +57,9 @@ class ProgressHandler:
 
     def iterate(self, id):
         self.queue.get(id).iterate()
+        completed = sum([v.complete for i, v in self.queue.iteritems()]) + 1
+        self.meta_tracker.current = completed
+        self.meta_tracker.max = len(self.queue.iteritems())
 
     @property
     def progress(self):
