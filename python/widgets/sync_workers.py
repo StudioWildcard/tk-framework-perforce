@@ -8,6 +8,8 @@ import time
 import uuid
 
 from ..sync.resolver import TemplateResolver
+from ..util.view import get_client_view, set_client_view
+from .utils import method_decorator, trace
 
 
 class SyncSignaller(QtCore.QObject):
@@ -35,7 +37,7 @@ class AssetInfoGatherSignaller(QtCore.QObject):
     total_items_found = QtCore.Signal(dict)
 
 
-class SyncWorker(QtCore.QRunnable):
+class SyncWorker2(QtCore.QRunnable):
 
     # structurally anticipate basic p4 calls, which will route to the main form.
     p4 = None
@@ -87,6 +89,61 @@ class SyncWorker(QtCore.QRunnable):
         )
 
 
+@method_decorator(trace)
+class SyncWorker(QtCore.QRunnable):
+
+    # structurally anticipate basic p4 calls, which will route to the main form.
+    p4 = None
+
+    path_to_sync = None
+    asset_name = None
+
+    def __init__(self):
+        """
+        Handles syncing specific file from perforce depot to local workspace on disk
+        """
+        super(SyncWorker, self).__init__()
+        self.signaller = SyncSignaller()
+
+        # use signals from Signaller, since we cant in a non-QObject derrived
+        # object like this QRunner.
+        self.started = self.signaller.started
+        self.finished = self.signaller.finished
+        self.progress = self.signaller.progress
+
+    def log_error(self, e):
+        self.fw.log_error(str(e))
+        self.fw.log_error(traceback.format_exc())
+
+    @QtCore.Slot()
+    def run(self):
+
+        """
+        Ryn syncs from perforce, signals information back to main thread.
+        """
+        # self.p4 = self.fw.connection.connect()
+
+        # # self.fw.log_debug("starting thread in pool to sync {}".format(self.path_to_sync))
+        # self.started.emit(
+        #     {"asset_name": self.asset_name, "sync_path": self.path_to_sync}
+        # )
+
+        # # run the syncs
+        # p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
+        # self.fw.log_debug(p4_response)
+
+        # emit item key and p4 response to main thread
+        # self.progress.emit(
+        #     {
+        #         "asset_name": self.asset_name,
+        #         "sync_path": self.path_to_sync,
+        #         "response": p4_response,
+        #     }
+        # )
+        self.fw.log_info("Processing for item: {}".format(str(self.item.itemData)))
+
+
+@method_decorator(trace)
 class AssetInfoGatherWorker(QtCore.QRunnable):
     def __init__(self, app=None, entity=None, framework=None):
         """
@@ -199,7 +256,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         """
         if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
             self.p4 = self.fw.connection.connect()
-            # self.fw.log_error(self.p4.run("client", ["view"]))
+            views = get_client_view(self.p4)
+            views.append(
+                f"//Ark2Depot/Content/Base/CoreTextures/Customization/...  //{self.p4.client}/Ark2Depot/Content/Base/CoreTextures/Customization/..."
+            )
+            set_client_view(self.p4, views)
+            self.fw.log_error(self.p4.run("client"))
             arguments = ["-n"]
             if self.force_sync:
                 arguments.append("-f")
