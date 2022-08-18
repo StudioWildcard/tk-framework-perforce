@@ -1,16 +1,25 @@
+from logging import Filter
 import traceback
+import os
+
 from .base_ui import Ui_Generic
 from sgtk.platform.qt import QtCore, QtGui
-from ..item_schemas import ItemSchema
+from ..item_schemas import RowSchema
 from ..base_model import MultiModel
 from ..filter_models import SortFilterModel
+from ..sync_workers import SyncWorker
+
+from ..utils import open_browser, trace, method_decorator
 
 
+@method_decorator(trace)
 class Ui_SyncForm(Ui_Generic):
     def __init__(self, parent, app, **kwargs):
         """
         Construction of sync UI
         """
+        self.progress_handler = None
+
         self.sync_app = app
         self.sg = self.sync_app.fw
         self.sync_app.ui = self
@@ -22,16 +31,16 @@ class Ui_SyncForm(Ui_Generic):
     def make_components(self):
 
         # the utility that defines how we hand raw data to the model
-        self.schema = ItemSchema
+        self.schema = RowSchema
 
         # the utility that routes the data into a table/view
-        self.model = MultiModel()
+        self.model = MultiModel(parent=self)
 
         # the filtering/sorting utility that uses our existing model to modify
         self.proxy_model = SortFilterModel(excludes=["aaaaaaaaaaaa"], parent=self)
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
-        self.proxy_model = self.model
+        # self.proxy_model = self.model
 
         # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
@@ -41,13 +50,14 @@ class Ui_SyncForm(Ui_Generic):
         """
         Makes UI widgets for the main form
         """
-        self.use_filters = ["dog", "cat", "gecko"]
+        self.use_filters = ["ext"]
 
         self._do = QtGui.QPushButton("Sync")
         self._asset_tree = QtGui.QTreeWidget()
 
         self._asset_tree.clear()
         self._progress_bar = QtGui.QProgressBar()
+        self._global_progress_bar = QtGui.QProgressBar()
         self._list = QtGui.QListWidget()
         self._line_edit = QtGui.QLineEdit()
         self._line_edit.setText(" ")
@@ -62,7 +72,7 @@ class Ui_SyncForm(Ui_Generic):
 
         self.view_stack = QtGui.QStackedWidget()
         self.b = QtGui.QLabel(
-            "Gathering contextual request from Perforce Servers for {} items...".format(
+            "<center><h3>Gathering contextual request from Perforce Servers for:<br></h3><h5> {} items...</center>".format(
                 str(len(self.sync_app.input_data))
             )
         )
@@ -102,6 +112,9 @@ class Ui_SyncForm(Ui_Generic):
 
         self.tree_view.setModel(self.proxy_model)
         self.tree_view.setAnimated(True)
+        # self.tree_view.setColumnWidth(1, 200)
+
+        # self.tree_view.setIconSize(10)
 
         self.view_stack.addWidget(self.tree_view)
         self.view_stack.addWidget(self.b)
@@ -112,10 +125,10 @@ class Ui_SyncForm(Ui_Generic):
         # self._asset_tree_header = QtGui.QTreeWidgetItem(self.tree_header)
         # self._asset_tree.setHeaderItem(self._asset_tree_header)
         self._asset_tree.setWordWrap(True)
-        self._asset_tree.setColumnWidth(0, 150)
-        self._asset_tree.setColumnWidth(1, 160)
 
         self._hide_syncd.setText("Hide if nothing to sync")
+
+        self._global_progress_bar.setMaximumHeight(10)
 
         self._menu_layout.addWidget(self._hide_syncd)
         self._menu_layout.addStretch()
@@ -128,8 +141,11 @@ class Ui_SyncForm(Ui_Generic):
         # arrange widgets in layout
         self._main_layout.addLayout(self._menu_layout)
         self._main_layout.addWidget(self.view_stack)
+        self._main_layout.addWidget(self._global_progress_bar)
         self._main_layout.addWidget(self._progress_bar)
         self._main_layout.addLayout(self.sync_layout)
+
+        self._rescan.clicked.connect(self.filtered)
 
         for widget in [self._do, self._force_sync, self._rescan, self.tree_view]:
             self.centrally_control_enabled_state(widget)
@@ -142,8 +158,41 @@ class Ui_SyncForm(Ui_Generic):
         # self._asset_tree.customContextMenuRequested.connect(self.open_context_menu)
 
         # self._rescan.clicked.connect(self.rescan)
+
+        self.resize(1000, 1000)
+
+        self.setup_views()
+
         self.interactive = False
         self.show_waiting()
+
+    def setup_events(self):
+        self._do.clicked.connect(self.start_sync)
+
+    def update_progress(self):
+        if len(self.progress_handler.queue.keys()) > 1:
+            self._global_progress_bar.setVisible(True)
+        self._global_progress_bar.setRange(0, 100)
+        self._progress_bar.setVisible(True)
+        self._progress_bar.setRange(0, 100)
+        if not self.progress_handler.progress == 1:
+            self._progress_bar.setValue(self.progress_handler.progress * 100)
+            self._global_progress_bar.setValue(
+                self.progress_handler.meta_tracker.progress * 100
+            )
+        else:
+            self._progress_bar.setVisible(False)
+            self._progress_bar.setValue(0)
+            self._global_progress_bar.setVisible(False)
+            self._global_progress_bar.setValue(0)
+
+    def icon_path(self, name) -> str:
+        icon_path = self.sync_app.shotgun_globals.icon.get_entity_type_icon_url(name)
+        if not icon_path:
+            icon_path = os.path.join(
+                self.sync_app.basepath, "resources", "status_{}.png".format(name)
+            )
+        return icon_path
 
     def make_icon(self, name) -> QtGui.QIcon:
         """
@@ -157,11 +206,78 @@ class Ui_SyncForm(Ui_Generic):
         """
         import os
 
-        return QtGui.QIcon(
-            os.path.join(
-                self.sync_app.basepath, "resources", "status_{}.png".format(name)
-            )
-        )
+        return QtGui.QIcon(self.icon_path(name))
+
+    def update_available_filters(self, filter_info):
+        """
+
+        TODO: implement during scraping/transformation of data
+        Populate the steps filter menu as steps are discovered in the p4 scan search
+        """
+        try:
+            filter_type = filter_info[0]
+            filter_value = filter_info[1]
+
+            actions = getattr(self, "_{}_actions".format(filter_type))
+            # if actions:
+            if filter_value not in actions.keys():
+                action = QtGui.QAction(self)
+
+                action.setCheckable(True)
+
+                self.utils.prefs.read()
+                filters = self.utils.prefs.data.get("{}_filters".format(filter_type))
+                check_state = True
+                if filters:
+                    if filter_value in filters.keys():
+                        check_state = filters[filter_value]
+
+                action.setChecked(check_state)
+                action.setText(str(filter_value))
+                action.triggered.connect(self.filter_triggered)
+                #  action.triggered.connect(self.filter_items)
+
+                getattr(self, "_{}_menu".format(filter_type)).addAction(action)
+                actions[filter_value] = action
+
+                self.logger.debug(
+                    "Filter added: {}:{}".format(filter_type, filter_value)
+                )
+
+        except Exception as e:
+
+            self.logger.error(traceback.format_exc())
+
+    def setup_views(self):
+        if getattr(self.model.rootItem, "column_schema"):
+            schema = self.model.rootItem.column_schema
+            for view in [self.tree_view]:
+                self.logger.info("setting up view: {}".format(schema))
+                for c, col_def in enumerate(schema):
+                    if col_def.get("width"):
+                        view.setColumnWidth(c, col_def["width"])
+
+    def filter_triggered(self):
+        data = self.utils.prefs.read()
+        for f in self.use_filters:
+            f = f.lower()
+            filter_name = "{}_filters".format(f)
+            filter_data = {}
+
+            # use existing filter data if exists
+            if data.get(filter_name):
+                filter_data = data.get(filter_name)
+            # overwrite it with  our scan of presently checked items
+            if hasattr(self, "_{}_actions".format(f)):
+                actions = getattr(self, "_{}_actions".format(f))
+                if actions:
+                    for k, v in actions.items():
+                        filter_data[k] = v.isChecked()
+
+            data[filter_name] = filter_data
+
+            self.utils.prefs.write(data)
+        self.filtered()
 
     def button_menu_factory(self, name=None):
         # sets up a filter for use in
@@ -186,7 +302,13 @@ class Ui_SyncForm(Ui_Generic):
         menu.setFixedWidth(width)
         menu.setTearOffEnabled(True)
 
+        self.logger.error(str(getattr(self, "_{}_actions".format(short_name))))
+
         self._menu_layout.addWidget(btn)
+
+    def filtered(self):
+        self.model.refresh()
+        # self.tree_view.resizeColumnToContents(0)
 
     def show_tree(self):
         self.view_stack.setCurrentWidget(self.tree_view)
@@ -315,47 +437,47 @@ class Ui_SyncForm(Ui_Generic):
 
     #     self.iterate_progress(message="Syncing {}".format(sync_item_widget.text(0)))
 
-    # def start_sync(self):
-    #     """
-    #     Iterate through assets and their sync items to start workers for all paths that require syncs.
-    #     Utilize a global threadpool to process
-    #     """
-    #     try:
-    #         self.interactive = False
+    def start_sync(self):
+        """
+        Iterate through assets and their sync items to start workers for all paths that require syncs.
+        Utilize a global threadpool to process
+        """
 
-    #         workers = []
-    #         for asset_name, asset_dict in self._asset_items.items():
-    #             for sync_path, sync_widget in asset_dict["child_widgets"].items():
-    #                 if not sync_widget.isHidden():
-    #                     sync_worker = SyncWorker()
-    #                     sync_worker.path_to_sync = sync_path
-    #                     sync_worker.asset_name = asset_name
+        self.interactive = False
 
-    #                     sync_worker.fw = self.fw
+        workers = []
+        for asset in self.model.rootItem.childItems:
+            for sync_item in asset.childItems:
+                if sync_item.visible:
+                    self.logger.info(str(sync_item))
+                    sync_worker = SyncWorker()
+                    sync_worker.item = sync_item
+                    # sync_worker.path_to_sync = sync_path
+                    # sync_worker.asset_name = asset.data(1)
 
-    #                     sync_worker.started.connect(self.sync_in_progress)
-    #                     # worker.finished.connect(self.sync_completed)
-    #                     sync_worker.progress.connect(self.item_syncd)
+                    sync_worker.fw = self.sync_app.fw
 
-    #                     workers.append(sync_worker)
+                    # sync_worker.started.connect(self.sync_in_progress)
+                    # # worker.finished.connect(self.sync_completed)
+                    # sync_worker.progress.connect(self.item_syncd)
 
-    #         self.progress = 0
+                    workers.append(sync_worker)
 
-    #         self.progress_maximum = len(workers)
-    #         self._progress_bar.setRange(0, self.progress_maximum)
-    #         self._progress_bar.setValue(0)
-    #         self._progress_bar.setVisible(True)
-    #         self._progress_bar.setFormat("%p%")
+        # self.progress = 0
 
-    #         # make threadpool to take all workers and multithread their execution
-    #         # self.threadpool = QtCore.QThreadPool.globalInstance()
-    #         # self.threadpool.setMaxThreadCount(min(24, self.threadpool.maxThreadCount()))
+        # self.progress_maximum = len(workers)
+        # self._progress_bar.setRange(0, self.progress_maximum)
+        # self._progress_bar.setValue(0)
+        # self._progress_bar.setVisible(True)
+        # self._progress_bar.setFormat("%p%")
 
-    #         # self.fw.log_debug("Starting Threaded P4 Sync...")
+        # # make threadpool to take all workers and multithread their execution
+        # # self.threadpool = QtCore.QThreadPool.globalInstance()
+        # # self.threadpool.setMaxThreadCount(min(24, self.threadpool.maxThreadCount()))
 
-    #         # setup workers for multiprocessing
+        # # self.fw.log_debug("Starting Threaded P4 Sync...")
 
-    #         for sync_worker in workers:
-    #             sync_worker.run()
-    #     except Exception as e:
-    #         self.log_error(e)
+        # # setup workers for multiprocessing
+
+        for sync_worker in workers:
+            sync_worker.run()
