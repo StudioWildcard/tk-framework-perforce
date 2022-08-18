@@ -43,6 +43,9 @@ class SortFilterModel(QtGui.QSortFilterProxyModel):
             if hasattr(item, "primary"):
                 if item.primary:
 
+                    # lets check if there's anything to sync. If not, we'll filter.
+                    # if all([not i.visible for i in item.childItems]):
+                    #     return False
                     return True
             # # else:
             name = item.itemData[2]

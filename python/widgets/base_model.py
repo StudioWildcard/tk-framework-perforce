@@ -11,13 +11,30 @@ class IconManager:
         self.col = 0
         self.icon_finder = icon_finder
 
+        self._icons = {}
+
+    def _setup_icon(self, icon):
+        return icon.scaled(
+            QtCore.QSize(23, 23),
+            QtCore.Qt.KeepAspectRatio,
+            QtCore.Qt.SmoothTransformation,
+        )
+
+    def _save_icon(self, path):
+        if path not in self._icons:
+            self._icons[path] = self._setup_icon(QtGui.QPixmap(path))
+        return self._icons[path]
+
     @property
     def current_data(self):
         return self.item.data(self.col)
 
     def get_icon(self, name):
-        return self.icon_finder(name)
+        icon_path = self.icon_finder(name)
+        pix = self._save_icon(icon_path)
+        return pix
 
+    # dynamic returns used in schemas
     def sync_status(self):
         return self.get_icon("load")
 
@@ -35,7 +52,7 @@ class MultiModel(QtCore.QAbstractItemModel):
 
         # self.rootItem will specify your headlines
         # TODO: pass your tree item in
-        self.rootItem = RowSchema(schema="asset_item_schema")
+        self.rootItem = RowSchema(schema="sync_item_schema")
 
         # TODO: make this work with lists of lists of strings
         if data:
@@ -59,50 +76,42 @@ class MultiModel(QtCore.QAbstractItemModel):
 
     def data(self, index, role):
 
-        try:
+        if not index.isValid():
+            return None
 
-            if not index.isValid():
-                return None
+        col = index.column()
 
-            if role not in [
-                QtCore.Qt.DisplayRole,
-                QtCore.Qt.UserRole,
-                QtCore.Qt.DecorationRole,
-                QtCore.Qt.SizeHintRole,
-            ]:
-                return None
-            item = index.internalPointer()
-            if role == QtCore.Qt.DecorationRole:
-                icon_finder = item.column_schema[index.column()].get("icon_finder")
-                if icon_finder:
-                    if hasattr(self.icon_manager, icon_finder):
-                        self.icon_manager.item = item
-                        self.icon_manager.col = index.column()
-                        icon = QtGui.QPixmap(
-                            getattr(self.icon_manager, icon_finder)()
-                        ).scaled(20, 20)
-                        return icon
+        if role not in [
+            QtCore.Qt.DisplayRole,
+            QtCore.Qt.UserRole,
+            QtCore.Qt.DecorationRole,
+            QtCore.Qt.SizeHintRole,
+        ]:
+            return None
+        item = index.internalPointer()
+        if role == QtCore.Qt.DecorationRole:
 
-                icon_static = item.column_schema[index.column()].get("icon")
-                # logger.info()
-                if icon_static:
-                    return QtGui.QPixmap(
-                        self.icon_manager.get_icon(icon_static)
-                    ).scaled(20, 20)
+            icon_static = item.column_schema[col].get("icon")
+            # logger.info()
+            if icon_static:
+                return self.icon_manager.get_icon(icon_static)
 
-            if role == QtCore.Qt.SizeHintRole:
-                return QtCore.QSize(30, 30)
+            icon_finder = item.column_schema[col].get("icon_finder")
+            if icon_finder:
+                if hasattr(self.icon_manager, icon_finder):
+                    self.icon_manager.item = item
+                    self.icon_manager.col = col
+                    return getattr(self.icon_manager, icon_finder)()
 
-            if role == QtCore.Qt.UserRole:
-                # used to do simple child relation as UserData in the cell itself
-                return item.row()
+        if role == QtCore.Qt.SizeHintRole:
+            return QtCore.QSize(30, 30)
 
-            else:
-                return item.data(index.column())
-        except:
-            import traceback
+        if role == QtCore.Qt.UserRole:
+            # used to do simple child relation as UserData in the cell itself
+            return item.row()
 
-            logger.error(traceback.format_exc())
+        else:
+            return item.data(col)
 
     def flags(self, index):
         if not index.isValid():
@@ -111,7 +120,7 @@ class MultiModel(QtCore.QAbstractItemModel):
         return (
             QtCore.Qt.ItemIsEnabled
             | QtCore.Qt.ItemIsSelectable
-            | QtCore.Qt.ItemIsEditable
+            # | QtCore.Qt.ItemIsEditable
         )
 
     def headerData(self, section, orientation, role):
