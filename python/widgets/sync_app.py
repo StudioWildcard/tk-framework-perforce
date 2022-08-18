@@ -132,7 +132,6 @@ class SyncApp:
         self.initialize_data()
         self.logger.info(f"App build completed with workers")
 
-    @trace
     def track_new_progress(self, progress):
         """
         Register a new progress tracker so multiple
@@ -146,7 +145,6 @@ class SyncApp:
             items=progress.get("count"), id=progress.get("id")
         )
 
-    @trace
     def report_worker_info(self, item: dict) -> None:
         """
         Method to process incoming dictionaries regarding items found
