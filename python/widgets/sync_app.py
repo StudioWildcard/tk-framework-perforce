@@ -18,16 +18,19 @@ import time
 import sys
 import pprint
 
+
 import sgtk
 from sgtk import TankError
 from sgtk.platform.qt import QtCore, QtGui
 from functools import partial
 
 from .sync_workers import SyncWorker, AssetInfoGatherWorker
-from .utils import PrefFile, open_browser, partialclass, ProgressHandler
+from .utils import PrefFile, open_browser, partialclass, trace, method_decorator
 from .ui.sync_form import Ui_SyncForm
+from .progress import ProgressHandler
 
 
+@method_decorator(trace)
 class SyncApp:
 
     _fw = None
@@ -48,6 +51,9 @@ class SyncApp:
         self.progress_handler = ProgressHandler()
 
         self.workers = {"asset_info": AssetInfoGatherWorker, "sync": SyncWorker}
+        self.shotgun_globals = sgtk.platform.import_framework(
+            "tk-framework-shotgunutils", "shotgun_globals"
+        )
 
         # the threadpool we send thread workers to.
         self.threadpool = QtCore.QThreadPool.globalInstance()
@@ -113,41 +119,6 @@ class SyncApp:
             self._p4 = self.fw.connection.connect()
         return self._p4
 
-    def update_available_filters(self, filter_info):
-        """
-        >> NOT IMPLEMENTED YET
-
-        TODO: implement during scraping/transformation of data
-        Populate the steps filter menu as steps are discovered in the p4 scan search
-        """
-        try:
-            filter_type = filter_info[0]
-            filter_value = filter_info[1]
-
-            actions = getattr(self, "_{}_actions".format(filter_type))
-            # if actions:
-            if filter_value not in actions.keys():
-                action = QtGui.QAction(self)
-
-                action.setCheckable(True)
-
-                self.prefs.read()
-                filters = self.prefs.data.get("{}_filters".format(filter_type))
-                check_state = True
-                if filter_value in filters.keys():
-                    check_state = filters[filter_value]
-
-                action.setChecked(check_state)
-                action.setText(str(filter_value))
-                action.triggered.connect(self.save_ui_state)
-                action.triggered.connect(self.filter_items)
-
-                getattr(self, "_{}_menu".format(filter_type)).addAction(action)
-                actions[filter_value] = action
-
-        except Exception as e:
-            self.log_error(e)
-
     def setup(self):
         """
         We defer the init so that the app can begin setting itself up when
@@ -188,32 +159,28 @@ class SyncApp:
         Raises:
             sgtk.TankError: _description_
         """
-        try:
-            # let's announce what the item was
-            # self.logger.info(
-            #     "Item received from worker thread:\n{}".format(pprint.pformat(item))
-            # )
-            self.progress_handler.tracker(item.get("worker_id")).iterate()
-            self.logger.info(
-                "Overall progress: {}".format(self.progress_handler.progress)
-            )
+        # let's announce what the item was
+        # self.logger.info(
+        #     "Item received from worker thread:\n{}".format(pprint.pformat(item))
+        # )
+        self.logger.info(item)
 
-            # we'll add a row to our model.
-            # the "row" we're adding is a dictionary, but since the model has
-            # its own parenting logic, it may ultimately be 2 items created in the model:
-            # a parent for the sync item, and the sync item.
-            self.ui.model.add_row(item)
-            self.ui.reload_view()
+        if not self.ui.progress_handler:
+            self.ui.progress_handler = self.progress_handler
+        self.progress_handler.tracker(item.get("worker_id")).iterate()
+        self.ui.update_progress()
 
-            # we want to let the UI know we're ready to see the data that's
-            # just been updated
-            self.ui.show_tree()
+        # we'll add a row to our model.
+        # the "row" we're adding is a dictionary, but since the model has
+        # its own parenting logic, it may ultimately be 2 items created in the model:
+        # a parent for the sync item, and the sync item. If the parent already exists,
+        # it will create just the sync item.
+        self.ui.model.add_row(item)
+        self.ui.reload_view()
 
-        except Exception as e:
-            import traceback
-
-            self.logger.error(traceback.format_exc())
-            # raise sgtk.TankError
+        # we want to let the UI know we're ready to see the data that's
+        # just been updated
+        self.ui.show_tree()
 
     def data_gathering_complete(self, completion_dict: dict) -> None:
         """
@@ -223,11 +190,9 @@ class SyncApp:
         Args:
             completion_dict (dict)
         """
-        try:
-            self.logger.info("GOT THE THINGS!!!")
-            self.ui.interactive = True
-        except Exception as e:
-            self.logger.error(traceback.format_exc())
+
+        self.logger.info("Finished gathering data from perforce.")
+        self.ui.interactive = True
 
     def initialize_data(self):
         """
@@ -235,20 +200,15 @@ class SyncApp:
         Utilize a global threadpool to process workers to ask P4 server for what
         there is to sync for these.
         """
-        try:
-            asset_info_gather_worker = AssetInfoGatherWorker(
-                app=self.parent_sgtk_app, entity=self.input_data, framework=self.fw
-            )
+        asset_info_gather_worker = AssetInfoGatherWorker(
+            app=self.parent_sgtk_app, entity=self.input_data, framework=self.fw
+        )
 
-            # as workers emit the item_found_to_sync, hit that method with the payload from it
-            asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
-            asset_info_gather_worker.info_gathered.connect(self.data_gathering_complete)
-            asset_info_gather_worker.total_items_found.connect(self.track_new_progress)
+        # as workers emit the item_found_to_sync, hit that method with the payload from it
+        asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
+        asset_info_gather_worker.info_gathered.connect(self.data_gathering_complete)
+        asset_info_gather_worker.total_items_found.connect(self.track_new_progress)
+        asset_info_gather_worker.includes.connect(self.ui.update_available_filters)
 
-            # this adds to the threadpool and runs the `run` method on the QRunner.
-            self.threadpool.start(asset_info_gather_worker)
-
-        except Exception as e:
-            import traceback
-
-            self.logger.error(traceback.format_exc())
+        # this adds to the threadpool and runs the `run` method on the QRunner.
+        self.threadpool.start(asset_info_gather_worker)

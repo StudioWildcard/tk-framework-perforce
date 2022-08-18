@@ -11,7 +11,7 @@
 from sgtk.platform.qt import QtGui
 if hasattr(QtGui, "QWidget"):
     from .open_connection_form import OpenConnectionForm
-    from .open_sync_form import SyncApp #SyncFormMVC
+    from .sync_app import SyncApp #SyncFormMVC
     from .password_form import PasswordForm
     from .select_workspace_form import SelectWorkspaceForm
     from .trust_form import TrustForm
