@@ -11,15 +11,39 @@ schemas = {
             "default": "No name",
             "delegate": None,
             "transform": "sync_item",
+            "width": 200,
         },
         {
             "key": "status",
             "title": "Descr",
             "default": "No Description",
             "icon_finder": "sync_status",
+            "width": 140,
         },
-        {"key": "ext", "title": "Extension", "default": "No Description"},
-        {"key": "_", "title": "Version", "default": "2"},
+        {
+            "key": "ext",
+            "title": "Extension",
+            "default": "No Description",
+            "width": 50,
+        },
+        {
+            "key": "item_found",
+            "title": "Version",
+            "default": " ",
+            "transform": "revision",
+        },
+        {
+            "key": "item_found",
+            "title": "Size (MB)",
+            "default": " ",
+            "transform": "file_size",
+        },
+        {
+            "key": "item_found",
+            "title": "Destination",
+            "default": " ",
+            "transform": "destination_path",
+        },
     ],
     "asset_item_schema": [
         {
@@ -39,7 +63,17 @@ schemas = {
         {"key": "_", "title": "Extension", "default": " "},
         {
             "key": "_",
-            "title": "Version",
+            "title": "Revision",
+            "default": """ """,
+        },
+        {
+            "key": "_",
+            "title": "Size (MB)",
+            "default": """ """,
+        },
+        {
+            "key": "_",
+            "title": "Destination Path",
             "default": """ """,
         },
     ],
@@ -84,6 +118,17 @@ class Transformers:
             msg += " ({} filtered)".format(filtered)
 
         return msg
+
+    def revision(self, dict_value):
+        return dict_value.get("rev")
+
+    def destination_path(self, dict_value):
+        return dict_value.get("clientFile")
+
+    def file_size(self, dict_value):
+        size = dict_value.get("fileSize")
+        if size:
+            return "{:.2f}".format(int(size) / 1024 / 1024)
 
 
 class Row:
