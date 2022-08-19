@@ -28,4 +28,4 @@ from .change import (
 )
 from .url import url_from_depot_path, depot_path_from_url
 from .reconcile import reconcile_files
-from .view import get_client_view, set_client_view
+from .view import get_client_view, set_client_view, add_paths_to_view
