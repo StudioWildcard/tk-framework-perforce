@@ -204,6 +204,8 @@ class SyncApp:
             app=self.parent_sgtk_app, entity=self.input_data, framework=self.fw
         )
 
+        asset_info_gather_worker.p4 = self.p4
+
         # as workers emit the item_found_to_sync, hit that method with the payload from it
         asset_info_gather_worker.item_found_to_sync.connect(self.report_worker_info)
         asset_info_gather_worker.info_gathered.connect(self.data_gathering_complete)
