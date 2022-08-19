@@ -15,7 +15,9 @@ def get_client_view(p4):
     """
     try:
         client_spec = p4.fetch_client(p4.client)
-        return client_spec._view
+        # if hasattr(client_spec, "_view"):
+        #     return client_spec._view
+        return []
     except P4Exception as e:
         raise TankError(
             "Perforce: Failed to query the workspace view/mapping for user '%s', workspace '%s': %s"
@@ -25,7 +27,13 @@ def get_client_view(p4):
 
 def add_paths_to_view(p4, paths):
     # convert paths to make sure works with
-    pass
+    views = []
+    if not type(paths) is list:
+        paths = [paths]
+    for path in paths:
+        pair_str = f"//{path}   //{p4.client}/{path}"
+        views.append(pair_str)
+    return set_client_view(p4, views)
 
 
 def set_client_view(p4, view: list):
@@ -38,6 +46,8 @@ def set_client_view(p4, view: list):
     """
     try:
         client_spec = p4.fetch_client(p4.client)
+        # view = client_spec.get("View")
+        # if not view:
         client_spec["View"] = view
         p4.save_client(client_spec)
         return p4
