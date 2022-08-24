@@ -98,6 +98,7 @@ class SyncWorker(QtCore.QRunnable):
 
     path_to_sync = None
     asset_name = None
+    item = None
 
     def __init__(self):
         """
@@ -124,16 +125,17 @@ class SyncWorker(QtCore.QRunnable):
         """
         # self.p4 = self.fw.connection.connect()
 
-        # # self.fw.log_debug("starting thread in pool to sync {}".format(self.path_to_sync))
+        # self.fw.log_debug("starting thread in pool to sync {}".format(self.path_to_sync))
         # self.started.emit(
         #     {"asset_name": self.asset_name, "sync_path": self.path_to_sync}
         # )
+        self.started.emit({"model_item": self.item})
 
         # # run the syncs
         # p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
         # self.fw.log_debug(p4_response)
 
-        # emit item key and p4 response to main thread
+        # # emit item key and p4 response to main thread
         # self.progress.emit(
         #     {
         #         "asset_name": self.asset_name,
@@ -262,7 +264,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             arguments = ["-n"]
             # if self.force_sync:
             # arguments.append("-f")
-            sync_response = self.p4.run("sync", arguments, "//Ark2Depot/")
+            sync_response = self.p4.run("sync", arguments, "//Ark2Depot/Content/...")
 
             if not sync_response:
                 self._status = "Not In Depot"
@@ -315,7 +317,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
         add_paths_to_view(self.p4, paths)
 
-        self.p4.run("client")
+        # self.p4.run("client")
         progress_status_string = ""
 
         self.status_update.emit(
