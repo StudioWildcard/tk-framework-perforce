@@ -130,6 +130,9 @@ class SyncApp:
 
         """
         self.initialize_data()
+
+        self.ui._do.clicked.connect(self.start_sync)
+
         self.logger.info(f"App build completed with workers")
 
     def track_new_progress(self, progress):
@@ -214,3 +217,54 @@ class SyncApp:
 
         # this adds to the threadpool and runs the `run` method on the QRunner.
         self.threadpool.start(asset_info_gather_worker)
+
+    def item_starting_sync(self, status_dict):
+        # make sure that the item knows its syncing,
+        item = status_dict.get("model_item")
+        item.syncing = True
+        self.ui.reload_view()
+
+    def start_sync(self):
+        """
+        Iterate through assets and their sync items to start workers for all paths that require syncs.
+        Utilize a global threadpool to process
+        """
+
+        self.ui.interactive = False
+
+        workers = []
+        for asset in self.ui.model.rootItem.childItems:
+            for sync_item in asset.childItems:
+                if sync_item.visible:
+                    self.logger.info(str(sync_item))
+                    sync_worker = SyncWorker()
+                    sync_worker.item = sync_item
+                    # sync_worker.path_to_sync = sync_item.data(5)
+                    # sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
+
+                    sync_worker.fw = self.fw
+
+                    sync_worker.started.connect(self.item_starting_sync)
+                    # # worker.finished.connect(self.sync_completed)
+                    # sync_worker.progress.connect(self.item_syncd)
+
+                    workers.append(sync_worker)
+
+        # self.progress = 0
+
+        # self.progress_maximum = len(workers)
+        # self._progress_bar.setRange(0, self.progress_maximum)
+        # self._progress_bar.setValue(0)
+        # self._progress_bar.setVisible(True)
+        # self._progress_bar.setFormat("%p%")
+
+        # # make threadpool to take all workers and multithread their execution
+        # # self.threadpool = QtCore.QThreadPool.globalInstance()
+        # # self.threadpool.setMaxThreadCount(min(24, self.threadpool.maxThreadCount()))
+
+        # # self.fw.log_debug("Starting Threaded P4 Sync...")
+
+        # # setup workers for multiprocessing
+
+        for sync_worker in workers:
+            sync_worker.run()
