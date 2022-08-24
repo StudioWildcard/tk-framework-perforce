@@ -7,7 +7,6 @@ from sgtk.platform.qt import QtCore, QtGui
 from ..item_schemas import RowSchema
 from ..base_model import MultiModel
 from ..filter_models import SortFilterModel
-from ..sync_workers import SyncWorker
 
 from ..utils import open_browser, trace, method_decorator
 
@@ -37,7 +36,7 @@ class Ui_SyncForm(Ui_Generic):
         self.model = MultiModel(parent=self)
 
         # the filtering/sorting utility that uses our existing model to modify
-        self.proxy_model = SortFilterModel(excludes=["aaaaaaaaaaaa"], parent=self)
+        self.proxy_model = SortFilterModel(excludes=[None], parent=self)
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
         # self.proxy_model = self.model
@@ -147,7 +146,7 @@ class Ui_SyncForm(Ui_Generic):
 
         self._rescan.clicked.connect(self.filtered)
 
-        for widget in [self._do, self._force_sync, self._rescan, self.tree_view]:
+        for widget in [self._do, self._force_sync, self._rescan]:  # , self.tree_view]:
             self.centrally_control_enabled_state(widget)
 
         for f in self.use_filters:
@@ -163,7 +162,7 @@ class Ui_SyncForm(Ui_Generic):
 
         self.setup_views()
 
-        self.interactive = False
+        # self.interactive = False
         self.show_waiting()
 
     def setup_events(self):
@@ -315,169 +314,3 @@ class Ui_SyncForm(Ui_Generic):
 
     def show_waiting(self):
         self.view_stack.setCurrentWidget(self.b)
-
-    # def iterate_progress(self, message=None):
-    #     """
-    #     Iterate global progress counter and update the progressbar widget
-    #     Detect if progress is globally complete and handle hiding the progress widget
-    #     """
-    #     self._progress_bar.setVisible(True)
-    #     self.progress += 1
-
-    #     self._progress_bar.setValue(self.progress)
-    #     # self.set_progress_message(message)
-    #     if self._progress_bar.value() == self._progress_bar.maximum():
-
-    #         self.set_progress_message("{} complete".format(message))
-    #         self._progress_bar.setVisible(False)
-
-    #         self.set_ui_interactive(True)
-
-    # def set_progress_message(self, message=None, percentf=" %p%"):
-    #     """
-    #     Set the message to see in the progress bar
-    #     """
-    #     self._progress_bar.setVisible(True)
-    #     self._progress_bar.setFormat("{}{}".format(message, percentf))
-
-    # def open_context_menu(self, point):
-    #     # Infos about the node selected.
-    #     try:
-    #         os_filebrowser_map = {
-    #             "win32" : "Explorer",
-    #             "darwin" : "Finder"
-    #         }
-    #         os_filebrowser = "file browser"
-    #         if sys.platform in os_filebrowser_map.keys():
-    #             os_filebrowser = os_filebrowser_map[sys.platform]
-
-    #         tree_item = self._asset_tree.itemAt(point)
-    #         path_to_open = os.path.dirname(tree_item.data(2, QtCore.Qt.UserRole))
-
-    #         menu = QtGui.QMenu()
-    #         action = menu.addAction("Open path in {}".format(os_filebrowser),
-    #                                 partial(open_browser, path_to_open))
-
-    #         menu.exec_(self._asset_tree.mapToGlobal(point))
-
-    #     except Exception as e:
-    #         self.log_error(e)
-
-    # def sync_in_progress(self, sync_item):
-    #     """
-    #     TODO:
-    #     Handle signal from SyncWorker.started to inform user that sync has started within sync_item_widget.
-    #     This sync_item_widget is looked up from our global asset dictionary using the signal payload arg [dict]
-    #     """
-
-    #     asset_name = sync_item.get("asset_name")
-    #     sync_path = sync_item.get("sync_path")
-
-    #     sync_item_widget = (
-    #         self._asset_items[asset_name].get("child_widgets").get(sync_path)
-    #     )
-    #     asset_item_widget = self._asset_items[asset_name].get("tree_widget")
-
-    #     icon = self.make_icon("syncing")
-    #     sync_item_widget.setIcon(1, icon)
-    #     sync_item_widget.setText(1, "Syncing")
-
-    #     self._asset_tree.scrollTo(self._asset_tree.indexFromItem(sync_item_widget))
-    #     asset_item_widget.setExpanded(True)
-
-    # def item_syncd(self, sync_item):
-    #     """
-    #     TODO: add functionality to model or item method
-    #     Handle signal from SyncWorker.progress to display sync status in sync_item_widget.
-    #     This sync_item_widget is looked up from our global asset dictionary using the signal payload arg [dict]
-    #     """
-
-    #     # log status of sync for this item
-    #     asset_name = sync_item.get("asset_name")
-    #     sync_path = sync_item.get("sync_path")
-    #     response = sync_item.get("response")
-
-    #     # self.fw.log_debug(sync_path)
-
-    #     # look up the sync-item object since we're passing only a topic/string around via signal
-    #     child_widgets = self._asset_items[asset_name].get("child_widgets")
-    #     sync_item_widget = child_widgets.get(sync_path)
-    #     asset_item_widget = self._asset_items[asset_name].get("tree_widget")
-
-    #     # since we're getting this
-    #     icon = self.make_icon("success")
-    #     sync_item_widget.setIcon(1, icon)
-    #     sync_item_widget.setText(1, "Syncd")
-
-    #     # check how many asset children are still needing to be synced
-    #     count_left_to_sync = len(
-    #         [
-    #             sync_widget
-    #             for sync_path, sync_widget in child_widgets.items()
-    #             if sync_widget.text(1) == "Ready"
-    #         ]
-    #     )
-
-    #     # set parent
-    #     parent_asset_status = "{} item{} to sync"
-    #     plurality = ""
-    #     if count_left_to_sync > 0:
-    #         if count_left_to_sync > 1:
-    #             plurality = "s"
-
-    #         # set asset parent's status regarding count-left-to-sync
-    #         asset_item_widget.setText(
-    #             1, parent_asset_status.format(count_left_to_sync, plurality)
-    #         )
-    #     else:
-    #         # when all sync's are done...
-    #         icon = self.make_icon("validate")
-    #         asset_item_widget.setIcon(1, icon)
-    #         asset_item_widget.setText(1, "Asset in Sync")
-
-    #     self.iterate_progress(message="Syncing {}".format(sync_item_widget.text(0)))
-
-    def start_sync(self):
-        """
-        Iterate through assets and their sync items to start workers for all paths that require syncs.
-        Utilize a global threadpool to process
-        """
-
-        self.interactive = False
-
-        workers = []
-        for asset in self.model.rootItem.childItems:
-            for sync_item in asset.childItems:
-                if sync_item.visible:
-                    self.logger.info(str(sync_item))
-                    sync_worker = SyncWorker()
-                    sync_worker.item = sync_item
-                    # sync_worker.path_to_sync = sync_path
-                    # sync_worker.asset_name = asset.data(1)
-
-                    sync_worker.fw = self.sync_app.fw
-
-                    # sync_worker.started.connect(self.sync_in_progress)
-                    # # worker.finished.connect(self.sync_completed)
-                    # sync_worker.progress.connect(self.item_syncd)
-
-                    workers.append(sync_worker)
-
-        # self.progress = 0
-
-        # self.progress_maximum = len(workers)
-        # self._progress_bar.setRange(0, self.progress_maximum)
-        # self._progress_bar.setValue(0)
-        # self._progress_bar.setVisible(True)
-        # self._progress_bar.setFormat("%p%")
-
-        # # make threadpool to take all workers and multithread their execution
-        # # self.threadpool = QtCore.QThreadPool.globalInstance()
-        # # self.threadpool.setMaxThreadCount(min(24, self.threadpool.maxThreadCount()))
-
-        # # self.fw.log_debug("Starting Threaded P4 Sync...")
-
-        # # setup workers for multiprocessing
-
-        for sync_worker in workers:
-            sync_worker.run()
