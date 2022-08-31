@@ -258,18 +258,12 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         Contextually use response to drive our status that we show the user. 1
         """
         if self.root_path and (self.entity.get("type") not in ["PublishedFile"]):
-            # self.p4 = self.fw.connection.connect()
-            views = get_client_view(self.p4)
-            views.append(
-                f"//Ark2Depot/Content/Base/CoreTextures/Customization/...  //{self.p4.client}/Ark2Depot/Content/Base/CoreTextures/Customization/..."
-            )
-            set_client_view(self.p4, views)
-            self.fw.log_error(self.p4.run("client"))
+
             # self.fw.log_error(self.p4.run("client"))
-            arguments = ["-n"]
-            # if self.force_sync:
-            # arguments.append("-f")
-            sync_response = self.p4.run("sync", arguments, "//Ark2Depot/Content/...")
+            arguments = ["-n", "--parallel=threads=6"]
+            if self.force_sync:
+                arguments.append("-f")
+            sync_response = self.p4.run("sync", arguments)
 
             if not sync_response:
                 self._status = "Not In Depot"
@@ -309,6 +303,8 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
 
         # self.p4 = self.fw.connection.connect()
         # set_client_view(self.p4, [])
+
+        self.p4 = self.fw.connection.connect()
         view = []
         paths = []
         for i in self.entities:
@@ -320,7 +316,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self.asset_item = self.template_resolver.entity_info
             paths.append(self.asset_item.get("root_path"))
 
-        add_paths_to_view(self.p4, paths)
+        self.p4 = add_paths_to_view(self.p4, paths)
 
         # self.p4.run("client")
         progress_status_string = ""
