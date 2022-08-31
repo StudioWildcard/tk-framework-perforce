@@ -81,3 +81,6 @@ requires_core_version: "v0.14.61"
 frameworks:
     # qt widgets from Shotgrid that are integrated with SG components and Entities
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
+
+    # sg components for utilizing var and asset globals from sg itself
+    - {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
