@@ -15,6 +15,7 @@ schemas = {
         },
         {
             "key": "status",
+            "transform": "sync_status",
             "title": "Descr",
             "default": "No Description",
             "icon_finder": "sync_status",
@@ -98,6 +99,12 @@ class Transformers:
 
     def sync_item(self, dict_value):
         return dict_value.get("depotFile").split("/")[-1]
+
+    def sync_status(self, dict_value):
+        if self.item:
+            if hasattr(self.item, "syncing"):
+                return "Syncing..."
+        return dict_value
 
     def asset_name(self, dict_value):
         count = 0
