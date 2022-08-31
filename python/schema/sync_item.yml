@@ -1,0 +1,41 @@
+"sync_item_schema": [
+        {
+            "key": "item_found",
+            "title": "Name",
+            "default": "No name",
+            "delegate": None,
+            "transform": "sync_item",
+            "width": 200,
+        },
+        {
+            "key": "status",
+            "title": "Descr",
+            "default": "No Description",
+            "icon_finder": "sync_status",
+            "width": 140,
+        },
+        {
+            "key": "ext",
+            "title": "Extension",
+            "default": "No Description",
+            "width": 50,
+        },
+        {
+            "key": "item_found",
+            "title": "Version",
+            "default": " ",
+            "transform": "revision",
+        },
+        {
+            "key": "item_found",
+            "title": "Size (MB)",
+            "default": " ",
+            "transform": "file_size",
+        },
+        {
+            "key": "item_found",
+            "title": "Destination",
+            "default": " ",
+            "transform": "destination_path",
+        },
+    ]
