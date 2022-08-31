@@ -1,0 +1,36 @@
+"asset_item_schema": [
+        {
+            "key": "asset_name",
+            "title": "Name",
+            "transform": "asset_name",
+            "default": "No name",
+            "icon": "Shot",
+        },
+        {
+            "key": "status",
+            "title": "Descr",
+            "default": "No Description",
+            "transform": "total_to_sync",
+            "icon_finder": "asset_status",
+        },
+        {
+            "key": "_", 
+            "title": "Extension",
+            "default": None
+        },
+        {
+            "key": "_",
+            "title": "Revision",
+            "default": None,
+        },
+        {
+            "key": "_",
+            "title": "Size (MB)",
+            "default": None,
+        },
+        {
+            "key": "_",
+            "title": "Destination Path",
+            "default": None,
+        },
+    ]
