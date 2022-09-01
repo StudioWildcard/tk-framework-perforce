@@ -124,15 +124,27 @@ class SyncWorker(QtCore.QRunnable):
         """
         Ryn syncs from perforce, signals information back to main thread.
         """
+        try:
+            self.started.emit({"model_item": self.id})
+            self.p4 = self.fw.connection.connect()
+            # # run the syncs
+            p4_response = self.p4.run(
+                "sync", ["-f"], "{}#head".format(self.path_to_sync)
+            )
+            self.fw.log_debug(p4_response)
 
-        self.started.emit({"model_item": self.id})
-        self.p4 = self.fw.connection.connect()
-        # # run the syncs
-        p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
-        self.fw.log_debug(p4_response)
-        p4_response = ""
-        # emit item key and p4 response to main thread
-        self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
+            # emit item key and p4 response to main thread
+            self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
+        except Exception as e:
+            import traceback
+
+            self.completed.emit(
+                {
+                    "model_item": self.id,
+                    "path": self.path_to_sync,
+                    "error": traceback.format_exc(),
+                }
+            )
 
 
 @method_decorator(trace)
