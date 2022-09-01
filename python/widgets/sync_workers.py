@@ -20,7 +20,7 @@ class SyncSignaller(QtCore.QObject):
 
     started = QtCore.Signal(dict)
     finished = QtCore.Signal()
-    progress = QtCore.Signal(dict)  # (path to sync, p4 sync response)
+    completed = QtCore.Signal(dict)  # (path to sync, p4 sync response)
 
 
 class AssetInfoGatherSignaller(QtCore.QObject):
@@ -38,56 +38,56 @@ class AssetInfoGatherSignaller(QtCore.QObject):
     total_items_found = QtCore.Signal(dict)
 
 
-class SyncWorker2(QtCore.QRunnable):
+# class SyncWorker2(QtCore.QRunnable):
 
-    # structurally anticipate basic p4 calls, which will route to the main form.
-    p4 = None
-    fw = None
-    path_to_sync = None
-    asset_name = None
+#     # structurally anticipate basic p4 calls, which will route to the main form.
+#     p4 = None
+#     fw = None
+#     path_to_sync = None
+#     asset_name = None
 
-    def __init__(self):
-        """
-        Handles syncing specific file from perforce depot to local workspace on disk
-        """
-        super(SyncWorker, self).__init__()
-        self.signaller = SyncSignaller()
+#     def __init__(self):
+#         """
+#         Handles syncing specific file from perforce depot to local workspace on disk
+#         """
+#         super(SyncWorker, self).__init__()
+#         self.signaller = SyncSignaller()
 
-        # use signals from Signaller, since we cant in a non-QObject derrived
-        # object like this QRunner.
-        self.started = self.signaller.started
-        self.finished = self.signaller.finished
-        self.progress = self.signaller.progress
+#         # use signals from Signaller, since we cant in a non-QObject derrived
+#         # object like this QRunner.
+#         self.started = self.signaller.started
+#         self.finished = self.signaller.finished
+#         self.progress = self.signaller.progress
 
-    def log_error(self, e):
-        self.fw.log_error(str(e))
-        self.fw.log_error(traceback.format_exc())
+#     def log_error(self, e):
+#         self.fw.log_error(str(e))
+#         self.fw.log_error(traceback.format_exc())
 
-    @QtCore.Slot()
-    def run(self):
+#     @QtCore.Slot()
+#     def run(self):
 
-        """
-        Ryn syncs from perforce, signals information back to main thread.
-        """
-        self.p4 = self.fw.connection.connect()
+#         """
+#         Ryn syncs from perforce, signals information back to main thread.
+#         """
+#         self.p4 = self.fw.connection.connect()
 
-        # self.fw.log_debug("starting thread in pool to sync {}".format(self.path_to_sync))
-        self.started.emit(
-            {"asset_name": self.asset_name, "sync_path": self.path_to_sync}
-        )
+#         # self.fw.log_debug("starting thread in pool to sync {}".format(self.path_to_sync))
+#         self.started.emit(
+#             {"asset_name": self.asset_name, "sync_path": self.path_to_sync}
+#         )
 
-        # run the syncs
-        p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
-        self.fw.log_debug(p4_response)
+#         # run the syncs
+#         p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
+#         self.fw.log_debug(p4_response)
 
-        # emit item key and p4 response to main thread
-        self.progress.emit(
-            {
-                "asset_name": self.asset_name,
-                "sync_path": self.path_to_sync,
-                "response": p4_response,
-            }
-        )
+#         # emit item key and p4 response to main thread
+#         self.progress.emit(
+#             {
+#                 "asset_name": self.asset_name,
+#                 "sync_path": self.path_to_sync,
+#                 "response": p4_response,
+#             }
+#         )
 
 
 @method_decorator(trace)
@@ -111,7 +111,7 @@ class SyncWorker(QtCore.QRunnable):
         # object like this QRunner.
         self.started = self.signaller.started
         self.finished = self.signaller.finished
-        self.progress = self.signaller.progress
+        self.completed = self.signaller.completed
 
     def log_error(self, e):
         self.fw.log_error(str(e))
@@ -123,27 +123,15 @@ class SyncWorker(QtCore.QRunnable):
         """
         Ryn syncs from perforce, signals information back to main thread.
         """
-        # self.p4 = self.fw.connection.connect()
 
-        # self.fw.log_debug("starting thread in pool to sync {}".format(self.path_to_sync))
-        # self.started.emit(
-        #     {"asset_name": self.asset_name, "sync_path": self.path_to_sync}
-        # )
-        self.started.emit({"model_item": self.item})
+        self.started.emit({"model_item": self.id})
 
         # # run the syncs
-        # p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
+        p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
         # self.fw.log_debug(p4_response)
-
-        # # emit item key and p4 response to main thread
-        # self.progress.emit(
-        #     {
-        #         "asset_name": self.asset_name,
-        #         "sync_path": self.path_to_sync,
-        #         "response": p4_response,
-        #     }
-        # )
-        self.fw.log_info("Processing for item: {}".format(str(self.item.itemData)))
+        p4_response = ""
+        # emit item key and p4 response to main thread
+        self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
 
 
 @method_decorator(trace)
@@ -307,6 +295,11 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.p4 = self.fw.connection.connect()
         view = []
         paths = []
+
+        self.asset_map = {}
+
+        # make a maps of everything based on the sync_root
+
         for i in self.entities:
             # time.sleep(2)
             self.entity = i
@@ -314,6 +307,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self.template_resolver = TemplateResolver(app=self.app, entity=self.entity)
 
             self.asset_item = self.template_resolver.entity_info
+            self.asset_map[self.asset_item.get("root_path")] = self.asset_item
             paths.append(self.asset_item.get("root_path"))
 
         self.p4 = add_paths_to_view(self.p4, paths)
@@ -324,7 +318,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
         self.status_update.emit(
             "Requesting sync information for {}".format(self.asset_name)
         )
-        self.fw.logger.info("COLLECTING")
+
         # self.fw.log_info(self.asset_item)
         self.collect_and_map_info()
 
@@ -363,6 +357,13 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                     published_file = published_file_by_depot_file.get(
                         item.get("depotFile")
                     )
+
+                    for i in self.asset_map.keys():
+                        # self.log_error(i)
+                        # self.log_error(item.get("clientFile"))
+                        if i in item.get("clientFile"):
+                            self.asset_item = self.asset_map[i]
+
                     step = None
 
                     file_type = None
