@@ -11,6 +11,7 @@
 
 from inspect import trace
 import os
+import queue
 import traceback
 import pprint
 import random
@@ -220,8 +221,19 @@ class SyncApp:
 
     def item_starting_sync(self, status_dict):
         # make sure that the item knows its syncing,
-        item = status_dict.get("model_item")
+        item = self.item_map.get(status_dict.get("model_item"))
         item.syncing = True
+        self.ui.reload_view()
+
+    def item_completed_sync(self, status_dict):
+        item = self.item_map.get(status_dict.get("model_item"))
+        self.progress_handler.tracker("sync_workers").iterate()
+        self.ui.update_progress()
+
+        self.logger.info(status_dict.get("path"))
+
+        item.syncing = False
+        item.syncd = True
         self.ui.reload_view()
 
     def start_sync(self):
@@ -232,39 +244,33 @@ class SyncApp:
 
         self.ui.interactive = False
 
+        # hold a map to our items while they process
+        self.item_map = {}
+
         workers = []
         for asset in self.ui.model.rootItem.childItems:
             for sync_item in asset.childItems:
                 if sync_item.visible:
-                    self.logger.info(str(sync_item))
+                    # self.logger.info(str(sync_item))
                     sync_worker = SyncWorker()
-                    sync_worker.item = sync_item
-                    # sync_worker.path_to_sync = sync_item.data(5)
-                    # sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
+
+                    self.item_map[sync_item.id] = sync_item
+                    sync_worker.id = sync_item.id
+
+                    sync_worker.path_to_sync = sync_item.data(5)
+                    sync_worker.asset_name = sync_item.parent().data(1).split(" ")[0]
 
                     sync_worker.fw = self.fw
 
                     sync_worker.started.connect(self.item_starting_sync)
+                    sync_worker.completed.connect(self.item_completed_sync)
                     # # worker.finished.connect(self.sync_completed)
                     # sync_worker.progress.connect(self.item_syncd)
-
                     workers.append(sync_worker)
 
-        # self.progress = 0
+        queue_length = len(workers)
 
-        # self.progress_maximum = len(workers)
-        # self._progress_bar.setRange(0, self.progress_maximum)
-        # self._progress_bar.setValue(0)
-        # self._progress_bar.setVisible(True)
-        # self._progress_bar.setFormat("%p%")
+        self.track_new_progress({"count": queue_length, "id": "sync_workers"})
 
-        # # make threadpool to take all workers and multithread their execution
-        # # self.threadpool = QtCore.QThreadPool.globalInstance()
-        # # self.threadpool.setMaxThreadCount(min(24, self.threadpool.maxThreadCount()))
-
-        # # self.fw.log_debug("Starting Threaded P4 Sync...")
-
-        # # setup workers for multiprocessing
-
-        for sync_worker in workers:
-            sync_worker.run()
+        for worker in workers:
+            self.threadpool.start(worker)
