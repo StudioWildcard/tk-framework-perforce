@@ -37,7 +37,11 @@ class IconManager:
     # dynamic returns used in schemas
     def sync_status(self):
         if hasattr(self.item, "syncing"):
-            return self.get_icon("syncing")
+            if self.item.syncing:
+                return self.get_icon("syncing")
+        if hasattr(self.item, "syncd"):
+            if self.item.syncd:
+                return self.get_icon("success")
         return self.get_icon("load")
 
     def asset_status(self):
