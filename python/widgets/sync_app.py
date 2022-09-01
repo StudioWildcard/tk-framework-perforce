@@ -11,7 +11,6 @@
 
 from inspect import trace
 import os
-import queue
 import traceback
 import pprint
 import random
