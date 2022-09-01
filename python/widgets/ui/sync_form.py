@@ -167,24 +167,34 @@ class Ui_SyncForm(Ui_Generic):
         self.show_waiting()
 
     def setup_events(self):
-        self._do.clicked.connect(self.start_sync)
+        pass
+        # ._do.clicked.connect(self.start_sync)
+
+    def hide_progress(self):
+        self._progress_bar.setVisible(False)
+        self._global_progress_bar.setVisible(False)
+
+    def reset_progress(self):
+        self._progress_bar.setVisible(False)
+        self._progress_bar.setValue(0)
+
+        self._global_progress_bar.setVisible(False)
+        self._global_progress_bar.setValue(0)
 
     def update_progress(self):
         if len(self.progress_handler.queue.keys()) > 1:
             self._global_progress_bar.setVisible(True)
         self._global_progress_bar.setRange(0, 100)
+
         self._progress_bar.setVisible(True)
         self._progress_bar.setRange(0, 100)
-        if not self.progress_handler.progress == 1:
+        if not self.progress_handler.progress >= 1:
             self._progress_bar.setValue(self.progress_handler.progress * 100)
             self._global_progress_bar.setValue(
                 self.progress_handler.meta_tracker.progress * 100
             )
         else:
-            self._progress_bar.setVisible(False)
-            self._progress_bar.setValue(0)
-            self._global_progress_bar.setVisible(False)
-            self._global_progress_bar.setValue(0)
+            self.reset_progress()
 
     def icon_path(self, name) -> str:
         icon_path = self.sync_app.shotgun_globals.icon.get_entity_type_icon_url(name)

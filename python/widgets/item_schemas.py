@@ -1,5 +1,6 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+import uuid
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -103,7 +104,11 @@ class Transformers:
     def sync_status(self, dict_value):
         if self.item:
             if hasattr(self.item, "syncing"):
-                return "Syncing..."
+                if self.item.syncing:
+                    return "Syncing..."
+            if hasattr(self.item, "syncd"):
+                if self.item.syncd:
+                    return "Sync'd"
         return dict_value
 
     def asset_name(self, dict_value):
@@ -143,6 +148,7 @@ class Row:
         self.childItems = []
         self.data_in = data
         self.parentItem = parent
+        self.id = str(uuid.uuid4())
 
         self.visible = True
         if parent:
