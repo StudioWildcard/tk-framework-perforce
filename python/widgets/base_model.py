@@ -36,6 +36,9 @@ class IconManager:
 
     # dynamic returns used in schemas
     def sync_status(self):
+        if hasattr(self.item, "error"):
+            if self.item.error:
+                return self.get_icon("error")
         if hasattr(self.item, "syncing"):
             if self.item.syncing:
                 return self.get_icon("syncing")
@@ -92,6 +95,7 @@ class MultiModel(QtCore.QAbstractItemModel):
             QtCore.Qt.UserRole,
             QtCore.Qt.DecorationRole,
             QtCore.Qt.SizeHintRole,
+            QtCore.Qt.ToolTipRole,
         ]:
             return None
         item = index.internalPointer()
@@ -108,6 +112,10 @@ class MultiModel(QtCore.QAbstractItemModel):
                     self.icon_manager.item = item
                     self.icon_manager.col = col
                     return getattr(self.icon_manager, icon_finder)()
+
+        if role == QtCore.Qt.ToolTipRole:
+            if hasattr(item, "tool_tip"):
+                return item.tool_tip
 
         if role == QtCore.Qt.SizeHintRole:
             return QtCore.QSize(30, 30)
