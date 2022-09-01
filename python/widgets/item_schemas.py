@@ -103,6 +103,10 @@ class Transformers:
 
     def sync_status(self, dict_value):
         if self.item:
+            if hasattr(self.item, "error"):
+                if self.item.error:
+                    self.item.tool_tip = self.item.error
+                    return self.item.error
             if hasattr(self.item, "syncing"):
                 if self.item.syncing:
                     return "Syncing..."
@@ -132,7 +136,7 @@ class Transformers:
         return msg
 
     def revision(self, dict_value):
-        return dict_value.get("rev")
+        return "#" + dict_value.get("rev")
 
     def destination_path(self, dict_value):
         return dict_value.get("clientFile")
