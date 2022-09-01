@@ -315,7 +315,7 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             }
             paths.append(self.asset_item.get("root_path"))
 
-        add_paths_to_view(self.p4, paths)
+        self.p4 = add_paths_to_view(self.p4, paths)
 
         # self.p4.run("client")
         progress_status_string = ""
