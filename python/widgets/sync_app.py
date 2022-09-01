@@ -1,14 +1,3 @@
-# Copyright (c) 2013 Studio WILDCARD.
-#
-# CONFIDENTIAL AND PROPRIETARY
-#
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
-# Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
-
-
 from inspect import trace
 import os
 import traceback
@@ -232,7 +221,11 @@ class SyncApp:
         self.logger.info(status_dict.get("path"))
 
         item.syncing = False
-        item.syncd = True
+
+        if status_dict.get("error"):
+            item.error = status_dict["error"]
+        else:
+            item.syncd = True
         self.ui.reload_view()
 
     def start_sync(self):
@@ -263,8 +256,7 @@ class SyncApp:
 
                     sync_worker.started.connect(self.item_starting_sync)
                     sync_worker.completed.connect(self.item_completed_sync)
-                    # # worker.finished.connect(self.sync_completed)
-                    # sync_worker.progress.connect(self.item_syncd)
+
                     workers.append(sync_worker)
 
         queue_length = len(workers)
