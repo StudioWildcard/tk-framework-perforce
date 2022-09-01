@@ -50,13 +50,19 @@ class ProgressHandler:
     def tracker(self, id):
         return self.queue.get(id)
 
+    def complete_item(self, id):
+        self.queue.pop(id)
+
     def track_progress(self, items=1, id=None):
         tracker = ProgressTracker(max=items, id=id)
-        self.queue[tracker.id] = tracker
+        self.queue[id] = tracker
         return tracker
 
     def iterate(self, id):
         self.queue.get(id).iterate()
+
+        if self.queue.get(id).complete:
+            self.complete_item(id)
         completed = sum([v.complete for i, v in self.queue.iteritems()]) + 1
         self.meta_tracker.current = completed
         self.meta_tracker.max = len(self.queue.iteritems())
