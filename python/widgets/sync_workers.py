@@ -7,6 +7,7 @@ import pprint
 import random
 import time
 import uuid
+import copy
 
 from ..sync.resolver import TemplateResolver
 from ..util.view import get_client_view, set_client_view, add_paths_to_view
@@ -125,10 +126,10 @@ class SyncWorker(QtCore.QRunnable):
         """
 
         self.started.emit({"model_item": self.id})
-
+        self.p4 = self.fw.connection.connect()
         # # run the syncs
         p4_response = self.p4.run("sync", ["-f"], "{}#head".format(self.path_to_sync))
-        # self.fw.log_debug(p4_response)
+        self.fw.log_debug(p4_response)
         p4_response = ""
         # emit item key and p4 response to main thread
         self.completed.emit({"model_item": self.id, "path": self.path_to_sync})
@@ -307,7 +308,11 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
             self.template_resolver = TemplateResolver(app=self.app, entity=self.entity)
 
             self.asset_item = self.template_resolver.entity_info
-            self.asset_map[self.asset_item.get("root_path")] = self.asset_item
+            key = self.asset_item.get("root_path")[:-5].replace("/", "\\")
+            self.asset_map[key] = {
+                "asset": copy.deepcopy(self.asset_item),
+                "entity": copy.deepcopy(self.entity),
+            }
             paths.append(self.asset_item.get("root_path"))
 
         self.p4 = add_paths_to_view(self.p4, paths)
@@ -354,32 +359,33 @@ class AssetInfoGatherWorker(QtCore.QRunnable):
                 # self.fw.log_info(published_file_by_depot_file)
                 for item in self._items_to_sync:
 
-                    published_file = published_file_by_depot_file.get(
-                        item.get("depotFile")
-                    )
+                    # published_file = published_file_by_depot_file.get(
+                    #     item.get("depotFile")
+                    # )
 
                     for i in self.asset_map.keys():
                         # self.log_error(i)
                         # self.log_error(item.get("clientFile"))
                         if i in item.get("clientFile"):
-                            self.asset_item = self.asset_map[i]
+                            self.asset_item = self.asset_map[i]["asset"]
+                            self.entity = self.asset_map[i]["entity"]
 
                     step = None
 
                     file_type = None
-                    if published_file:
-                        # self.fw.log_info(published_file_by_depot_file)
+                    # if published_file:
+                    #     # self.fw.log_info(published_file_by_depot_file)
 
-                        step = published_file.get("task.Task.step.Step.code")
-                        file_type = published_file.get(
-                            "published_file_type.PublishedFileType.code"
-                        )
+                    #     step = published_file.get("task.Task.step.Step.code")
+                    #     file_type = published_file.get(
+                    #         "published_file_type.PublishedFileType.code"
+                    #     )
 
-                        if file_type:
-                            self.includes.emit(("type", file_type))
+                    #     if file_type:
+                    #         self.includes.emit(("type", file_type))
 
-                    if step:
-                        self.includes.emit(("step", step))
+                    # if step:
+                    #     self.includes.emit(("step", step))
 
                     ext = None
                     if "." in item.get("clientFile"):
