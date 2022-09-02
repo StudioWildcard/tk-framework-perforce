@@ -63,6 +63,7 @@ class Schema(object):
 
         return cls
 
+    
     @classmethod
     def set_schema_type(cls, type):
         
@@ -106,3 +107,6 @@ class Schema(object):
         
 a = Schema(template_schema='asset_item')
 print(a.type)
+a.type
+
+
