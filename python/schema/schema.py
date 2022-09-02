@@ -4,6 +4,10 @@ import sys
 import os
 import logging
 
+from .schema_resolver import Transformers
+
+
+
 class Schema(object):
     
     def __init__(self, schema_type=None, template_schema=None):
@@ -39,6 +43,8 @@ class Schema(object):
             print(files)
                      
     
+
+
     @property
     def schema_type(self):
         return self.type  
@@ -48,7 +54,15 @@ class Schema(object):
         #TODO remove this. just for testing
         print(self.schema)
     
-    
+
+    #example: Schema.from_name("asset_item")
+    #TODO lets ensure we have an empty class that can run get instatiated via class method
+    @classmethod
+    def from_schema_name(cls, name):
+        cls.setup_as("asset_item")
+
+        return cls
+
     @classmethod
     def set_schema_type(cls, type):
         
@@ -91,6 +105,4 @@ class Schema(object):
         
         
 a = Schema(template_schema='asset_item')
-a.type
-
-
+print(a.type)

@@ -12,3 +12,4 @@ from .connection import *
 from .util import *
 from .widgets import *
 from .sync import *
+from .schema import *

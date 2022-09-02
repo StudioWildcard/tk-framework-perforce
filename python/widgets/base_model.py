@@ -1,6 +1,7 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
-from .item_schemas import RowSchema
+from ..schema.schema import Schema
+from .item_schemas import Row
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -54,7 +55,7 @@ class MultiModel(QtCore.QAbstractItemModel):
 
         # self.rootItem will specify your headlines
         # TODO: pass your tree item in
-        self.rootItem = RowSchema(schema="sync_item_schema")
+        #self.rootItem = RowSchema(schema="sync_item_schema")
 
         # TODO: make this work with lists of lists of strings
         if data:
@@ -62,6 +63,12 @@ class MultiModel(QtCore.QAbstractItemModel):
 
         logger.debug("was able to set up the Model!! {}".format(data))
 
+        # self.schemas = 
+        self.parent_schema = Schema("asset_item_schema")
+        self.child_schema = Schema("sync_item_schema")
+        self.rootItem = Row()
+     
+        
         self.primary_roots = {}
 
     def columnCount(self, parent=None):
@@ -181,17 +188,17 @@ class MultiModel(QtCore.QAbstractItemModel):
     def add_row(self, data_item):
         if data_item.get("asset_name"):
             if not self.primary_roots.get(data_item["asset_name"]):
-                asset_item = RowSchema(
+                asset_item = Row(
                     data=data_item,
                     parent=self.rootItem,
-                    schema="asset_item_schema",
+                    schema=self.parent_schema
                     primary=True,
                 )
                 self.primary_roots[data_item["asset_name"]] = asset_item
-            sync_item = RowSchema(
+            sync_item = Row(
                 data=data_item,
                 parent=self.primary_roots[data_item["asset_name"]],
-                schema="sync_item_schema",
+                schema=self.child_schema
             )
             self.refresh()
 
