@@ -90,7 +90,7 @@ class SelectWorkspaceForm(QtGui.QWidget):
         if self._workspace_details and len(self._workspace_details) > 0:
             self._root_path = os.path.abspath(
                     os.path.join(self._fw.sgtk.roots.get('primary'), os.pardir))  # one directory above project root
-            logger.debug("root path: {}".format(self._root_path))
+            self.log_status("Root path is: {}".format(self._root_path))
 
     def eventFilter(self, q_object, event):
         """
@@ -108,6 +108,31 @@ class SelectWorkspaceForm(QtGui.QWidget):
         return QtCore.QObject.eventFilter(self, q_object, event)
 
     def _selectDirDialog(self):
+        """
+        Opens a directory selection dialog for the user to choose an empty folder
+        for project drive mapping.
+
+        This method checks the validity of the project root path before displaying
+        the dialog. If a valid directory is selected:
+        - If the folder is empty, it proceeds to create a drive mapping.
+        - If the folder is not empty, it prompts the user with a warning dialog
+          before proceeding.
+
+        The selected directory is then assigned to the UI folder input field.
+
+        Logs errors in case of:
+        - An invalid project root path.
+        - A non-existent selected folder.
+        - A non-empty folder selection that is declined by the user.
+
+        Returns:
+            str: The selected directory path if a valid selection is made, else None.
+        """
+
+        # check the project root path
+        if not self._root_path or len(self._root_path) < 2:
+            self.log_status("Invalid project root path {}: Root path is missing or incorrectly formatted. Please check your project settings.".format(self._root_path))
+            return
 
         self._mapping_status = self._get_drive_status()
         selectedDir = QtGui.QFileDialog.getExistingDirectory(
