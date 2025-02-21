@@ -60,7 +60,6 @@ class SelectWorkspaceForm(QtGui.QWidget):
 
         self._root_path = None
         self.get_root_path()
-        # self.populate_drives()
 
         self._current_workspace = current_workspace
 
@@ -91,8 +90,7 @@ class SelectWorkspaceForm(QtGui.QWidget):
         if self._workspace_details and len(self._workspace_details) > 0:
             self._root_path = os.path.abspath(
                     os.path.join(self._fw.sgtk.roots.get('primary'), os.pardir))  # one directory above project root
-            self.__ui.driveInput.setText(self._root_path)
-            logger.debug("root path: {}".format(self._root_path))
+            self.log_status("Root path is: {}".format(self._root_path))
 
     def eventFilter(self, q_object, event):
         """
@@ -108,16 +106,6 @@ class SelectWorkspaceForm(QtGui.QWidget):
                 
         # let default handler handle the event:
         return QtCore.QObject.eventFilter(self, q_object, event)
-
-    def populate_drives(self):
-        """
-        Populate the playlist
-        """
-        available_drives = self.get_available_drives()
-        driveSelection = self.__ui.driveSelection
-        driveSelection.clear()
-        for drive in available_drives:
-            driveSelection.addItem(drive)
 
     def _selectDirDialog(self):
         """
@@ -146,35 +134,33 @@ class SelectWorkspaceForm(QtGui.QWidget):
         #    self.log_status("Invalid project root path {}: Root path is missing or incorrectly formatted. Please check your project settings.".format(self._root_path))
         #    return
 
-        # self._mapping_status = self._get_drive_status()
-        # get the mapping drive
-        mapping_drive = self.__ui.driveInput.text()
+        self._mapping_status = self._get_drive_status()
+
         selectedDir = QtGui.QFileDialog.getExistingDirectory(
             self,
             "Select an empty folder to create project drive mapping",
             self._root_path,
             QtGui.QFileDialog.ShowDirsOnly
             )
-        self.__ui.folderInput.setText(selectedDir)
+        # self.__ui.folderInput.setText(selectedDir)
         # drive = self._root_path[0:2]
-        drive = mapping_drive[0:2]
+        drive = selectedDir[0:2]
         drive = drive.lower()
 
-        if os.path.isdir(selectedDir):
+        if selectedDir and len(selectedDir) >= 2:
+            self.log_status("Selected folder: {}".format(selectedDir))
+            if os.path.isdir(selectedDir):
+                if not os.listdir(selectedDir):
+                    self.log_status("Selected folder {} is empty".format(selectedDir))
+                    self._create_drive_mapping(drive, selectedDir)
+                    self.__ui.folderInput.setText(selectedDir)
 
-            if not os.listdir(selectedDir):
-                self.log_status("Selected folder {} is empty".format(selectedDir))
-                if self._root_path and len(self._root_path) >= 2:
-                    self._create_drive_mapping(drive, selectedDir)
-                    self.__ui.folderInput.setText(selectedDir)
                 else:
-                    self.log_status("Error with project root path: {}".format(self._root_path))
-            else:
-                self.log_status("\nSelected folder {} is not empty".format(selectedDir))
-                result = self._warning_dialog()
-                if result:
-                    self._create_drive_mapping(drive, selectedDir)
-                    self.__ui.folderInput.setText(selectedDir)
+                    self.log_status("\nSelected folder {} is not empty".format(selectedDir))
+                    result = self._warning_dialog()
+                    if result:
+                        self._create_drive_mapping(drive, selectedDir)
+                        self.__ui.folderInput.setText(selectedDir)
         else:
             self.log_status("Selected folder {} does not exist, please select another folder".format(selectedDir))
         return selectedDir

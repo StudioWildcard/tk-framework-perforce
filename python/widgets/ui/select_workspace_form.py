@@ -34,6 +34,17 @@ class Ui_SelectWorkspaceForm(object):
         self.folderLayout.setContentsMargins(0, 30, 0, 0)
         self.folderLayout.setObjectName("folderLayout")
 
+        self.driveLabel = QLabel(SelectWorkspaceForm)
+        self.driveLabel.setObjectName("context")
+        self.driveLabel.setText("Drive")
+
+        self.driveInput = QLineEdit(SelectWorkspaceForm)
+        self.driveInput.setToolTip('Set the drive letter for the mapping, e.g. Z:\\')
+        self.driveInput.setEnabled(True)
+
+        #self.driveSelection = QListWidget()
+        #self.driveSelection.setToolTip('Select a mapping drive')
+
         self.folderLabel = QLabel(SelectWorkspaceForm)
         self.folderLabel.setObjectName("context")
         self.folderLabel.setText("Mapping folder")
@@ -59,6 +70,9 @@ class Ui_SelectWorkspaceForm(object):
         self.folderBtn.setText("Select a mapping folder")
         self.folderBtn.setToolTip('Select an empty folder for mapping')
 
+        self.folderLayout.addWidget(self.driveLabel)
+        self.folderLayout.addWidget(self.driveInput)
+        self.folderLayout.addWidget(self.break_line_2)
         self.folderLayout.addWidget(self.folderLabel)
         self.folderLayout.addWidget(self.folderInput)
         self.folderLayout.addWidget(self.break_line_2)
