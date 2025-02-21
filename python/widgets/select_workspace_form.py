@@ -130,11 +130,12 @@ class SelectWorkspaceForm(QtGui.QWidget):
         """
 
         # check the project root path
-        if not self._root_path or len(self._root_path) < 2:
-            self.log_status("Invalid project root path {}: Root path is missing or incorrectly formatted. Please check your project settings.".format(self._root_path))
-            return
+        #if not self._root_path or len(self._root_path) < 2:
+        #    self.log_status("Invalid project root path {}: Root path is missing or incorrectly formatted. Please check your project settings.".format(self._root_path))
+        #    return
 
         self._mapping_status = self._get_drive_status()
+
         selectedDir = QtGui.QFileDialog.getExistingDirectory(
             self,
             "Select an empty folder to create project drive mapping",
@@ -142,24 +143,25 @@ class SelectWorkspaceForm(QtGui.QWidget):
             QtGui.QFileDialog.ShowDirsOnly
             )
         # self.__ui.folderInput.setText(selectedDir)
-        drive = self._root_path[0:2]
+        # drive = self._root_path[0:2]
+        drive = selectedDir[0:2]
         drive = drive.lower()
 
-        if os.path.isdir(selectedDir):
+        if selectedDir and len(selectedDir) >= 2:
+            selectedDir = selectedDir.replace("/", "\\")
+            self.log_status("Selected folder: {}".format(selectedDir))
+            if os.path.isdir(selectedDir):
+                if not os.listdir(selectedDir):
+                    self.log_status("Selected folder {} is empty".format(selectedDir))
+                    self._create_drive_mapping(drive, selectedDir)
+                    self.__ui.folderInput.setText(selectedDir)
 
-            if not os.listdir(selectedDir):
-                self.log_status("Selected folder {} is empty".format(selectedDir))
-                if self._root_path and len(self._root_path) >= 2:
-                    self._create_drive_mapping(drive, selectedDir)
-                    self.__ui.folderInput.setText(selectedDir)
                 else:
-                    self.log_status("Error with project root path: {}".format(self._root_path))
-            else:
-                self.log_status("\nSelected folder {} is not empty".format(selectedDir))
-                result = self._warning_dialog()
-                if result:
-                    self._create_drive_mapping(drive, selectedDir)
-                    self.__ui.folderInput.setText(selectedDir)
+                    self.log_status("\nSelected folder {} is not empty".format(selectedDir))
+                    result = self._warning_dialog()
+                    if result:
+                        self._create_drive_mapping(drive, selectedDir)
+                        self.__ui.folderInput.setText(selectedDir)
         else:
             self.log_status("Selected folder {} does not exist, please select another folder".format(selectedDir))
         return selectedDir
@@ -263,7 +265,7 @@ class SelectWorkspaceForm(QtGui.QWidget):
             msg = '\nSelect a folder to create project drive mapping '
             self.log_status(msg)
             return False
-        return False
+
 
 
     def _check_project_drive(self):
